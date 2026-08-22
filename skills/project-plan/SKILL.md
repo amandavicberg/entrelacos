@@ -28,6 +28,12 @@ Se algum item estiver ausente ou vago, solicite somente as informações faltant
 
 Inclua objetivo/resultado; escopo incluído e excluído; camadas afetadas (`frontend`, `backend`, `Supabase/banco`, documentação); fluxo de autorização para paciente, profissional e não associado; arquivos/módulos prováveis; migration necessária; validações/critério de pronto; riscos, dependências e decisões pendentes.
 
+## Arquivo obrigatório
+
+Todo plano deve ser salvo em `ia/plan/` antes da implementação. Use o formato de nome `YYYY-MM-DD-nome-da-task.md`, com letras minúsculas, números e hífens. O arquivo deve conter o nome da task, descrição objetiva, escopo, fora do escopo, plano, validação, riscos e decisões pendentes.
+
+Se a task mudar de escopo, atualize o mesmo arquivo em vez de criar versões paralelas. O plano deve permanecer no repositório mesmo depois da task concluída, servindo como histórico de decisão.
+
 Para tarefas de interface, inclua impacto no design system Tamagui, tokens/componentes reutilizados, acessibilidade, estados de carregamento/erro/vazio, responsividade e validação visual. Avalie a experiência do paciente e do profissional separadamente.
 
 ## Regras

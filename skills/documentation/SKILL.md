@@ -15,9 +15,11 @@ Leia `constitution.md` na raiz e o `AGENTS.md` mais específico da área alterad
 
 ## Onde documentar
 
-Prefira documentação versionada em `docs/`, organizada por assunto. Atualize um documento existente quando ele já cobrir a área; crie um documento específico apenas quando isso melhorar a localização da informação. Evite duplicar o constitution, o plano da task ou comentários óbvios do código.
+Toda documentação de task deve ser versionada em `ia/documentation/`. Atualize um documento existente quando ele já cobrir a área; crie um documento específico apenas quando isso melhorar a localização da informação. Evite duplicar o constitution, o plano da task ou comentários óbvios do código.
 
-Quando não houver uma estrutura de documentação definida para a área, use nomes claros como `docs/frontend.md`, `docs/backend.md`, `docs/database.md` ou `docs/features/<feature>.md`, conforme o conteúdo. A documentação deve apontar para arquivos reais do repositório usando caminhos relativos.
+Quando não houver uma estrutura definida para a área, use nomes claros como `ia/documentation/frontend.md`, `ia/documentation/backend.md`, `ia/documentation/database.md` ou `ia/documentation/features/<feature>.md`, conforme o conteúdo. A documentação deve apontar para arquivos reais do repositório usando caminhos relativos.
+
+Ao concluir uma task, crie ou atualize obrigatoriamente um arquivo em `ia/documentation/`. Prefira documentação por funcionalidade/domínio para evitar um arquivo excessivamente grande; use `ia/documentation/features/<feature>.md` para funcionalidades e arquivos de camada para conhecimento transversal.
 
 ## Conteúdo obrigatório após uma task
 

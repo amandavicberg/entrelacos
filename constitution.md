@@ -1,6 +1,6 @@
 # Constitution do EntreLaços
 
-**Versão:** 1.0.0  
+**Versão:** 1.1.0  
 **Status:** documento normativo do projeto  
 **Última atualização:** 2026-08-22
 
@@ -102,3 +102,7 @@ O pronto inclui comportamento funcional, estados de carregamento/erro/vazio, ace
 Ao iniciar uma tarefa: ler este constitution e instruções locais; identificar camadas afetadas; montar plano curto com escopo, riscos, arquivos e validação; implementar somente o escopo; criar migrations quando necessário; validar; e informar o que foi alterado, preparado ou ficou pendente.
 
 Se uma solicitação conflitar com segurança, autorização ou integridade dos dados, sinalizar antes de implementar. Mudanças intencionais nas regras devem atualizar este constitution.
+
+## 13. Registro de trabalho
+
+Todo plano deve ser salvo em `ia/plan/` antes da implementação. Toda task concluída deve criar ou atualizar um registro em `ia/documentation/`, descrevendo o funcionamento real, decisões, validações, limitações e orientações de manutenção. Esses diretórios fazem parte do histórico oficial do projeto e não devem conter segredos, dados reais de pacientes ou funcionalidades apenas planejadas.
