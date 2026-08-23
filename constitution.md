@@ -1,6 +1,6 @@
 # Constitution do EntreLaços
 
-**Versão:** 1.2.0
+**Versão:** 1.3.0
 **Status:** documento normativo do projeto  
 **Última atualização:** 2026-08-23
 
@@ -21,7 +21,35 @@ Existem dois perfis principais, com acessos separados:
 - **Paciente:** registra sua história, anotações, sintomas/evolução e observações relevantes; consulta orientações, materiais e histórico disponibilizados.
 - **Profissional:** acompanha pacientes associados, visualiza registros permitidos, registra observações profissionais, organiza o histórico e compartilha materiais/orientações.
 
-Um paciente só acessa dados de acompanhamento depois de estar associado a um profissional por fluxo explícito e auditável, como convite, código ou aprovação. A implementação concreta deve ser decidida antes da migration correspondente; não criar associação implícita por e-mail ou simples conhecimento do identificador.
+Cada usuário deve possuir exatamente um papel: `patient` ou `professional`. O
+papel deve ser definido no perfil do usuário e não pode ser inferido apenas
+pela existência de dados em uma tabela complementar.
+
+Um paciente só acessa o aplicativo e os dados de acompanhamento depois de
+possuir uma associação ativa com um profissional. A autenticação pode ser
+concluída antes disso, mas um usuário sem associação ativa deve permanecer
+restrito a uma tela de pendência/bloqueio, sem leitura ou escrita de dados do
+produto.
+
+A associação deve ocorrer por um fluxo explícito, auditável e iniciado por um
+convite do profissional. A implementação inicial será feita por código de
+convite com as seguintes regras:
+
+- o profissional gera o código para convidar o paciente;
+- o código deve ser aleatório, de uso único e possuir expiração;
+- o paciente informa o código durante o cadastro ou onboarding;
+- a relação é criada inicialmente como `pending`;
+- o profissional aprova a relação, que então passa para `active`;
+- código usado, expirado, recusado ou cancelado não pode ser reutilizado;
+- não criar associação implícita por e-mail ou pelo conhecimento de um ID.
+
+O uso de QR Code pode ser adicionado posteriormente como outra forma de
+transportar o mesmo convite, sem alterar as regras de autorização.
+
+Um paciente não pode criar registros de acompanhamento antes de possuir uma
+associação `active`. A quantidade de profissionais que um paciente pode ter
+associados ainda deve ser definida pelo produto; o modelo não deve assumir
+uma limitação sem essa decisão.
 
 Autenticação não equivale a autorização. Toda leitura e escrita deve respeitar papel, associação paciente-profissional e políticas do banco.
 
@@ -55,6 +83,69 @@ As versões instaladas no repositório são a referência operacional. Antes de 
 **Nunca alterar o banco diretamente.** Não executar SQL destrutivo, criar tabela, alterar coluna, policy ou função manualmente no Supabase.
 
 Toda mudança persistente deve ser uma migration versionada, revisável e idempotente quando aplicável, incluindo tabelas, constraints, índices, RLS e policies mínimas por papel/associação. Durante a tarefa, a migration pode ser criada e validada, mas não aplicada a banco remoto ou local sem autorização explícita.
+
+A primeira migration de domínio deve priorizar os perfis de usuário, os perfis
+específicos de paciente e profissional, os convites e as associações
+paciente-profissional. Registros, consultas, arquivos, grupos e materiais
+devem ser adicionados em migrations posteriores, conforme as funcionalidades
+forem definidas.
+
+### Soft-delete e preservação de dados
+
+As migrations devem preservar os dados persistidos e utilizar soft-delete para
+desativação lógica. Toda tabela de domínio que possa ser desativada deve ter um
+campo `status` do tipo inteiro pequeno, com os valores normativos:
+
+- `0`: ativo;
+- `-1`: inativo ou removido logicamente.
+
+O campo deve ser `not null`, possuir valor padrão `0` e uma constraint que
+aceite somente `0` ou `-1`. Consultas e policies devem considerar apenas
+registros com `status = 0` quando o comportamento esperado for trabalhar com
+dados ativos. A inativação deve preservar o registro e, quando necessário,
+registrar data, motivo ou responsável em campos próprios.
+
+Não executar `DELETE` físico em dados de domínio nem usar `ON DELETE CASCADE`
+em relacionamentos que possam apagar dados importantes. Estados de negócio,
+como `pending`, `active`, `ended` ou `cancelled` de uma associação, devem ser
+modelados em uma coluna própria e não substituir o `status` de soft-delete.
+
+### Evolução do modelo de dados por funcionalidade
+
+Ao iniciar uma nova tela ou funcionalidade, a IA e o integrante responsável
+devem verificar primeiro, nesta ordem:
+
+1. quais dados a funcionalidade lê, cria, altera ou inativa;
+2. quais tabelas, colunas, relacionamentos e migrations existentes representam
+   esses dados;
+3. se a tela pode reutilizar a estrutura atual por meio de consulta, filtro,
+   hook ou serviço, sem mudança persistente;
+4. se a necessidade é apenas um novo atributo de uma entidade existente, caso
+   em que deve ser avaliada uma nova coluna;
+5. se existe uma nova entidade de domínio, ciclo de vida, relacionamento,
+   regra de autorização ou conjunto de dados que justifique uma nova tabela.
+
+Não criar uma tabela por tela. Tabelas representam entidades, relacionamentos
+ou conceitos do domínio, e devem ser decididas com base nas regras de negócio.
+Uma nova tabela só deve ser criada quando a estrutura existente não representar
+corretamente a entidade, a cardinalidade, o histórico, a autorização ou o
+ciclo de vida necessários.
+
+Antes de implementar a tela, registrar a decisão técnica:
+
+- tabelas e campos existentes que serão reutilizados;
+- campos ou relacionamentos novos, se necessários;
+- operações de leitura, criação, alteração e soft-delete;
+- limites de acesso para paciente, profissional, usuário não associado e
+  usuário desativado;
+- migration, constraints, índices, `status` e RLS/policies necessários;
+- motivo para não criar estrutura nova, quando a estrutura existente for
+  suficiente.
+
+Exemplos: login e dashboard normalmente reutilizam autenticação, perfis e
+consultas existentes; o código de convite reutiliza convites e associações;
+um histórico cronológico pode justificar uma nova tabela de registros; uma
+nova tela, por si só, nunca é justificativa suficiente.
 
 Como os dados podem conter informações de saúde, aplicar minimização de dados, menor privilégio, validação server-side e cuidado com logs, fixtures e testes. Nunca colocar `SUPABASE_SECRET_KEY` no frontend, logs ou commits.
 

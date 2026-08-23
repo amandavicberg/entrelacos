@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { createClient } from "@supabase/supabase-js";
+import ws from "ws";
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
@@ -14,5 +15,10 @@ if (!supabaseSecretKey) {
 
 export const supabase = createClient(
   supabaseUrl,
-  supabaseSecretKey
+  supabaseSecretKey,
+  {
+    realtime: {
+      transport: ws as never,
+    },
+  },
 );

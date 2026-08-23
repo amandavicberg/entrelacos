@@ -72,32 +72,71 @@ server-side do backend está em `backend/src/config/supabase.ts`.
 As dependências adicionadas ao frontend para essa fundação são `tamagui`,
 `@tamagui/config`, `@tamagui/metro-plugin` e `@supabase/supabase-js`.
 
-Ainda não existem tabelas, migrations, RLS ou policies. Nenhuma alteração deve
-ser feita diretamente no banco; mudanças persistentes devem ser migrations
-versionadas e validadas antes de aplicação, conforme o `constitution.md`.
+A migration inicial em
+[`supabase/migrations/20260823_000001_identity_and_relationships.sql`](../../supabase/migrations/20260823_000001_identity_and_relationships.sql)
+define perfis, perfis específicos de paciente e profissional, convites e
+associações. Ela inclui constraints, índices, triggers de atualização, RLS e
+policies mínimas de leitura. A migration foi criada, mas não aplicada a nenhum
+banco.
+
+As tabelas criadas pela migration são:
+
+- `profiles`: identidade ligada a `auth.users`, papel único e status ativo;
+- `patient_profiles`: dados complementares do paciente e status de soft-delete;
+- `professional_profiles`: dados complementares do profissional e status de
+  soft-delete;
+- `professional_invites`: convites com digest do código, expiração, controle
+  de uso e status de soft-delete;
+- `patient_professional_relationships`: status de soft-delete e estado de
+  negócio `pending`, `active`, `rejected`, `ended` ou `cancelled`.
+
+Em todas essas tabelas, `status = 0` significa ativo e `status = -1` significa
+inativo ou removido logicamente. Não há exclusão física prevista para os dados
+de domínio.
+
+Nenhuma alteração deve ser feita diretamente no banco; mudanças persistentes
+devem ser migrations versionadas e validadas antes de aplicação, conforme o
+`constitution.md`.
 
 ## Segurança e autorização
 
-Autenticação não equivale a autorização. As futuras telas e consultas deverão
-respeitar o papel do usuário, a associação explícita entre paciente e
-profissional e as policies do banco.
+Cada usuário possui somente um papel: `patient` ou `professional`. Autenticação
+não equivale a autorização. As futuras telas e consultas deverão respeitar o
+papel do usuário, a associação explícita entre paciente e profissional e as
+policies do banco.
 
-O fluxo de associação paciente-profissional ainda precisa ser definido antes
-da migration correspondente. Não deve ser criado vínculo implícito por e-mail
-ou apenas pelo conhecimento de um identificador.
+O fluxo definido para a associação é baseado em convite do profissional por
+código aleatório, de uso único e com expiração. O paciente informa o código,
+a relação é criada como `pending` e o profissional deve aprová-la para que
+fique `active`. Código usado, expirado, recusado ou cancelado não pode ser
+reutilizado. QR Code pode ser adicionado depois como outra forma de transportar
+o mesmo convite.
 
-Os placeholders não são proteção de acesso. A autenticação e a autorização
-reais deverão proteger telas, consultas e escritas, considerando paciente,
-profissional, usuário não associado e usuário desativado.
+Um usuário pode concluir a autenticação sem associação ativa, mas fica restrito
+a uma tela de pendência/bloqueio e não acessa dados do produto. O paciente não
+pode criar registros antes de possuir uma associação `active`. A quantidade de
+profissionais associados por paciente ainda está pendente de decisão.
+
+Os placeholders não são proteção de acesso. A autorização real deverá proteger
+telas, consultas e escritas, considerando paciente, profissional, usuário não
+associado e usuário desativado.
 
 ## Próximos passos
 
 - definir o fluxo de autenticação e persistência de sessão;
 - definir o modelo de perfis e permissões;
-- definir e implementar o fluxo explícito de associação;
-- criar migrations com constraints, RLS e policies;
+- decidir se um paciente pode ter um ou vários profissionais ativos;
+- implementar o fluxo de convite e aprovação;
+- adicionar migrations de acompanhamento com constraints, RLS e policies;
 - substituir os placeholders pelas telas reais.
 
 A tela de login ainda não foi implementada.
 
-Esses itens ainda não estão implementados nesta configuração inicial.
+O fluxo de onboarding e aprovação ainda não está implementado. As policies de
+escrita não foram abertas para usuários autenticados; a criação e aprovação de
+perfis, convites e associações deve passar pelo backend/service role até que os
+endpoints e suas validações estejam definidos.
+
+Registros de acompanhamento, consultas, arquivos, grupos e materiais ainda
+não possuem tabelas e devem ser adicionados em migrations próprias quando as
+respectivas funcionalidades forem implementadas.
