@@ -86,19 +86,21 @@ O Tamagui está configurado no frontend como base visual compartilhada. Sua conf
 
 A navegação inicial, os tokens visuais e os componentes compartilhados devem
 servir como fundação para todas as telas. O funcionamento real dessa base está
-registrado em [`ia/documentation/frontend-base.md`](ia/documentation/frontend-base.md).
+registrado em [`ia/documentation/configuracao-inicial.md`](ia/documentation/configuracao-inicial.md).
 
-Antes de iniciar uma nova task do frontend:
+Antes de iniciar ou alterar uma task do frontend, ler a documentação
+consolidada da configuração inicial:
+
+- [`ia/documentation/configuracao-inicial.md`](ia/documentation/configuracao-inicial.md);
+- `frontend/AGENTS.md`, incluindo a documentação oficial da versão do Expo instalada.
+
+Depois:
 
 - criar a branch a partir da `main` atualizada;
 - consultar e reutilizar a navegação, o tema e os componentes existentes;
 - evitar duplicar botões, campos, cartões, cabeçalhos, mensagens ou padrões de rota;
 - atualizar a documentação da base quando uma mudança compartilhada alterar seu funcionamento;
-- registrar em um plano próprio qualquer alteração estrutural da base.
-
-O plano [`ia/plan/estrutura-base-frontend.md`](ia/plan/estrutura-base-frontend.md)
-registra a decisão e o escopo da task que criou essa fundação; a documentação
-em `ia/documentation/` é a referência do funcionamento atual.
+- consultar a documentação consolidada antes de alterar a estrutura compartilhada.
 
 ## 10. Padrões de implementação
 
