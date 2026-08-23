@@ -1,8 +1,8 @@
 # Constitution do EntreLaços
 
-**Versão:** 1.1.0  
+**Versão:** 1.2.0
 **Status:** documento normativo do projeto  
-**Última atualização:** 2026-08-22
+**Última atualização:** 2026-08-23
 
 Este documento é a fonte de verdade para decisões técnicas e de produto do EntreLaços. Toda nova tarefa deve começar pela leitura deste arquivo. Decisões que alterem arquitetura, domínio ou segurança devem atualizar o documento junto com a implementação.
 
@@ -80,7 +80,25 @@ O Tamagui será usado como base técnica, não como identidade visual pronta. An
 
 Priorizar hierarquia visual, legibilidade, feedback de ações, navegação previsível, acessibilidade e adaptação a diferentes tamanhos de tela. A escolha de cores e textos deve transmitir acolhimento e confiança, sem infantilizar o paciente ou sugerir diagnóstico/garantia clínica.
 
-O Tamagui ainda não está instalado no frontend; sua adoção deve ocorrer em uma task própria, com validação da configuração Expo Router/Metro e revisão visual das telas existentes antes de migrar todo o aplicativo.
+O Tamagui está configurado no frontend como base visual compartilhada. Sua configuração, tokens e componentes comuns devem ser reutilizados antes da criação de estilos ou componentes específicos de uma feature.
+
+### Base compartilhada do frontend
+
+A navegação inicial, os tokens visuais e os componentes compartilhados devem
+servir como fundação para todas as telas. O funcionamento real dessa base está
+registrado em [`ia/documentation/frontend-base.md`](ia/documentation/frontend-base.md).
+
+Antes de iniciar uma nova task do frontend:
+
+- criar a branch a partir da `main` atualizada;
+- consultar e reutilizar a navegação, o tema e os componentes existentes;
+- evitar duplicar botões, campos, cartões, cabeçalhos, mensagens ou padrões de rota;
+- atualizar a documentação da base quando uma mudança compartilhada alterar seu funcionamento;
+- registrar em um plano próprio qualquer alteração estrutural da base.
+
+O plano [`ia/plan/estrutura-base-frontend.md`](ia/plan/estrutura-base-frontend.md)
+registra a decisão e o escopo da task que criou essa fundação; a documentação
+em `ia/documentation/` é a referência do funcionamento atual.
 
 ## 10. Padrões de implementação
 
@@ -99,7 +117,7 @@ O pronto inclui comportamento funcional, estados de carregamento/erro/vazio, ace
 
 ## 12. Processo de decisão
 
-Ao iniciar uma tarefa: ler este constitution e instruções locais; identificar camadas afetadas; montar plano curto com escopo, riscos, arquivos e validação; implementar somente o escopo; criar migrations quando necessário; validar; e informar o que foi alterado, preparado ou ficou pendente.
+Ao iniciar uma tarefa: ler este constitution e instruções locais; identificar camadas afetadas; consultar a documentação da base compartilhada quando a task envolver o frontend; montar plano curto com escopo, riscos, arquivos e validação; implementar somente o escopo; criar migrations quando necessário; validar; e informar o que foi alterado, preparado ou ficou pendente.
 
 Se uma solicitação conflitar com segurança, autorização ou integridade dos dados, sinalizar antes de implementar. Mudanças intencionais nas regras devem atualizar este constitution.
 
