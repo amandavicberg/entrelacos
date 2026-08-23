@@ -206,7 +206,10 @@ Depois:
 
 Validar proporcionalmente ao risco: lint/build/testes disponíveis para a área alterada e revisão do diff. Para banco, validar migration, RLS/policies e cenários de paciente, profissional, usuário não associado e usuário desativado.
 
-O pronto inclui comportamento funcional, estados de carregamento/erro/vazio, acessibilidade básica, ausência de segredos, documentação/migration atualizada e nenhuma alteração direta no banco.
+O pronto inclui comportamento funcional, estados de carregamento/erro/vazio,
+acessibilidade básica, ausência de segredos, migration atualizada quando
+necessária e nenhuma alteração direta no banco. Documentação só entra no
+pronto quando tiver sido autorizada explicitamente.
 
 ## 12. Processo de decisão
 
@@ -216,4 +219,32 @@ Se uma solicitação conflitar com segurança, autorização ou integridade dos 
 
 ## 13. Registro de trabalho
 
-Todo plano deve ser salvo em `ia/plan/` antes da implementação. Toda task concluída deve criar ou atualizar um registro em `ia/documentation/`, descrevendo o funcionamento real, decisões, validações, limitações e orientações de manutenção. Esses diretórios fazem parte do histórico oficial do projeto e não devem conter segredos, dados reais de pacientes ou funcionalidades apenas planejadas.
+Todo plano deve ser salvo em `ia/plan/` antes da implementação. O plano deve
+conter etapas em formato de checklist, cobrindo tudo o que será feito, e uma
+checklist separada de testes manuais para execução e confirmação pelo
+programador ou responsável pela validação. Conforme o trabalho avança, os
+itens executados devem ser marcados no próprio plano; itens não executados ou
+bloqueados devem permanecer identificados.
+
+A documentação em `ia/documentation/` só deve ser criada ou alterada quando
+houver autorização explícita do programador/responsável pela task. Não criar
+documentação automaticamente ao concluir uma implementação. Quando autorizada,
+a documentação deve descrever o funcionamento real, decisões, validações,
+limitações e orientações de manutenção.
+
+Esses diretórios fazem parte do histórico oficial do projeto e não devem
+conter segredos, dados reais de pacientes ou funcionalidades apenas planejadas.
+
+## 14. Checklists de implementação e testes humanos
+
+Os planos devem usar a convenção:
+
+- `[ ]` item ainda não executado;
+- `[x]` item executado e validado pelo agente;
+- `[ ]` itens de teste humano permanecem desmarcados até serem confirmados
+  pelo programador ou responsável pela validação.
+
+A checklist de testes humanos deve ser específica para a funcionalidade e
+conter cenários de sucesso, erro, vazio, acessibilidade, autorização e
+responsividade quando aplicável. A validação automatizada do agente não
+substitui a confirmação manual.

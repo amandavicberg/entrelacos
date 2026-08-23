@@ -6,6 +6,7 @@ import { BrandButton } from '@/components/brand-button';
 
 const patientPath = '/(patient)' as RelativePathString;
 const professionalPath = '/(professional)' as RelativePathString;
+const registrationPath = '/cadastro' as RelativePathString;
 
 export default function EntryScreen() {
   return (
@@ -24,8 +25,13 @@ export default function EntryScreen() {
         <Separator borderColor="$borderColor" />
 
         <YStack gap="$3">
+          <Link href={registrationPath} asChild>
+            <BrandButton size="$5">Criar uma conta</BrandButton>
+          </Link>
           <Link href={patientPath} asChild>
-            <BrandButton size="$5">Visualizar área do paciente</BrandButton>
+            <BrandButton size="$5" chromeless borderWidth={1} borderColor="$brand" color="$brand">
+              Visualizar área do paciente
+            </BrandButton>
           </Link>
           <Link href={professionalPath} asChild>
             <BrandButton size="$5" chromeless borderWidth={1} borderColor="$brand" color="$brand">
