@@ -1,3 +1,4 @@
+import * as Linking from 'expo-linking';
 import type { AppRole } from './registration.types';
 import { getSupabaseClient } from './supabase';
 
@@ -15,11 +16,13 @@ export type RegistrationData = {
 
 export async function registerUser(data: RegistrationData) {
   const supabase = getSupabaseClient();
+  const confirmationRedirectUrl = Linking.createURL('login');
 
   return supabase.auth.signUp({
     email: data.email,
     password: data.password,
     options: {
+      emailRedirectTo: confirmationRedirectUrl,
       data: {
         full_name: data.fullName,
         birth_date: data.birthDate,
@@ -33,6 +36,19 @@ export async function registerUser(data: RegistrationData) {
             }
           : {}),
       },
+    },
+  });
+}
+
+export async function resendConfirmationEmail(email: string) {
+  const supabase = getSupabaseClient();
+  const confirmationRedirectUrl = Linking.createURL('login');
+
+  return supabase.auth.resend({
+    type: 'signup',
+    email,
+    options: {
+      emailRedirectTo: confirmationRedirectUrl,
     },
   });
 }

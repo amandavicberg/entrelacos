@@ -186,6 +186,7 @@ concluí-lo. Ficam fora do escopo:
 - [x] Implementar campos comuns e profissionais condicionais.
 - [x] Limpar dados profissionais ao trocar para paciente.
 - [x] Implementar validações, máscaras e mensagens de erro.
+- [x] Aplicar máscara automática de data de nascimento no formato `DD/MM/AAAA`.
 - [x] Implementar estados de envio, erro e sucesso.
 - [x] Exibir orientação de confirmação de e-mail e retorno ao login.
 - [x] Reutilizar componentes e tokens Tamagui existentes.
@@ -201,16 +202,16 @@ concluí-lo. Ficam fora do escopo:
 
 ## Checklist de testes humanos
 
-- [ ] Abrir a rota de cadastro pelo botão da tela inicial.
-- [ ] Alternar entre paciente e profissional e confirmar a exibição dos
+- [x] Abrir a rota de cadastro pelo botão da tela inicial.
+- [x] Alternar entre paciente e profissional e confirmar a exibição dos
   campos correspondentes.
-- [ ] Confirmar que os dados profissionais são limpos ao voltar para paciente.
-- [ ] Tentar enviar o formulário vazio e verificar as mensagens por campo.
-- [ ] Testar e-mail inválido, senha curta e senhas diferentes.
-- [ ] Testar data inválida/futura e telefone inválido.
+- [x] Confirmar que os dados profissionais são limpos ao voltar para paciente.
+- [x] Tentar enviar o formulário vazio e verificar as mensagens por campo.
+- [x] Testar e-mail inválido, senha curta e senhas diferentes.
+- [x] Testar data inválida/futura e telefone inválido.
 - [ ] Criar uma conta de paciente com dados válidos.
 - [ ] Criar uma conta de profissional com dados válidos.
-- [ ] Confirmar o recebimento do e-mail de confirmação.
+- [x] Confirmar o recebimento do e-mail de confirmação.
 - [ ] Confirmar a mensagem de sucesso e o botão de retorno ao login.
 - [ ] Tentar cadastrar um e-mail já utilizado e verificar o erro apresentado.
 - [ ] Tentar cadastrar profissional sem os dados profissionais obrigatórios.
@@ -218,6 +219,12 @@ concluí-lo. Ficam fora do escopo:
   em tamanhos de tela suportados.
 - [ ] Confirmar que nenhum dado profissional é persistido para paciente após
   a aplicação da migration.
+- [ ] Solicitar um cadastro e confirmar que o assunto e o conteúdo do e-mail
+  estão em português.
+- [ ] Clicar no link de confirmação do e-mail e verificar a abertura da tela
+  de login.
+- [ ] Fazer login com a conta confirmada e validar o tratamento de credenciais
+  inválidas.
 
 ## Arquivos e módulos prováveis
 
@@ -310,3 +317,17 @@ remoto ou local.
 - A confirmação de e-mail deve estar habilitada no projeto Supabase.
 - A trigger garante os campos obrigatórios e o papel único; não valida o
   registro profissional por área ou órgão.
+
+## Extensão: confirmação de e-mail e retorno ao login
+
+### Escopo
+
+- [x] Personalizar o assunto e o conteúdo do e-mail de confirmação em
+  português, com chamada clara para concluir o cadastro no EntreLaços.
+- [x] Configurar o redirecionamento do link de confirmação para a rota de login
+  do aplicativo.
+- [x] Criar a tela de login com autenticação por e-mail e senha.
+- [x] Configurar o esquema de deep link do aplicativo para abrir a rota de login
+  após a confirmação no dispositivo.
+- [x] Atualizar a configuração local do Supabase e registrar a necessidade de
+  replicar o template e as URLs permitidas no projeto hospedado.

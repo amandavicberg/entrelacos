@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import {
@@ -17,7 +17,7 @@ import { AppInput } from '@/components/app-input';
 import { AppScreen } from '@/components/app-screen';
 import { BrandButton } from '@/components/brand-button';
 import { FeedbackState } from '@/components/feedback-state';
-import { registerUser } from '@/lib/registration';
+import { registerUser, resendConfirmationEmail } from '@/lib/registration';
 import type { AppRole } from '@/lib/registration.types';
 
 type FormValues = {
@@ -115,6 +115,13 @@ function birthDateToIso(value: string) {
   return `${year}-${month}-${day}`;
 }
 
+function formatBirthDate(value: string) {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
 function formatPhone(value: string) {
   const digits = value.replace(/\D/g, '').slice(0, 11);
   if (digits.length <= 2) return digits;
@@ -129,6 +136,21 @@ export default function RegistrationScreen() {
   const [submitError, setSubmitError] = useState<string>();
   const [isComplete, setIsComplete] = useState(false);
   const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false);
+  const [resendCountdown, setResendCountdown] = useState(0);
+  const [isResending, setIsResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string>();
+  const [resendError, setResendError] = useState<string>();
+
+  useEffect(() => {
+    if (!isComplete) return;
+
+    setResendCountdown(60);
+    const timer = setInterval(() => {
+      setResendCountdown((current) => (current > 0 ? current - 1 : 0));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isComplete]);
 
   const roleLabel = useMemo(
     () => (values.role === 'patient' ? 'Paciente' : 'Profissional'),
@@ -184,6 +206,24 @@ export default function RegistrationScreen() {
     setIsComplete(true);
   }
 
+  async function resendEmail() {
+    if (resendCountdown > 0 || isResending) return;
+
+    setIsResending(true);
+    setResendMessage(undefined);
+    setResendError(undefined);
+    const { error } = await resendConfirmationEmail(values.email.trim().toLowerCase());
+    setIsResending(false);
+
+    if (error) {
+      setResendError('Não foi possível reenviar agora. Tente novamente em alguns instantes.');
+      return;
+    }
+
+    setResendCountdown(60);
+    setResendMessage('Enviamos um novo link de confirmação para o seu e-mail.');
+  }
+
   if (isComplete) {
     return (
       <AppScreen>
@@ -200,6 +240,23 @@ export default function RegistrationScreen() {
             <Paragraph color="$muted">
               Depois de confirmar o e-mail, volte para a tela de login para entrar no EntreLaços.
             </Paragraph>
+          </YStack>
+          <YStack gap="$2">
+            <Paragraph color="$muted">
+              Não recebeu o e-mail? Aguarde 1 minuto. Depois desse tempo, você poderá solicitar
+              um novo envio.
+            </Paragraph>
+            {resendCountdown > 0 ? (
+              <Paragraph color="$muted">
+                Reenvio disponível em {resendCountdown}s.
+              </Paragraph>
+            ) : (
+              <BrandButton size="$5" disabled={isResending} onPress={resendEmail}>
+                {isResending ? 'Reenviando...' : 'Reenviar e-mail de confirmação'}
+              </BrandButton>
+            )}
+            {resendMessage ? <Paragraph color="$brand">{resendMessage}</Paragraph> : null}
+            {resendError ? <Paragraph color="$red10">{resendError}</Paragraph> : null}
           </YStack>
           <BrandButton size="$5" onPress={() => router.back()}>
             Voltar para o login
@@ -289,7 +346,7 @@ export default function RegistrationScreen() {
                 label="Data de nascimento"
                 placeholder="DD/MM/AAAA"
                 value={values.birthDate}
-                onChangeText={(value) => updateValue('birthDate', value.replace(/[^\d/]/g, '').slice(0, 10))}
+                onChangeText={(value) => updateValue('birthDate', formatBirthDate(value))}
                 error={errors.birthDate}
                 keyboardType="number-pad"
               />
@@ -303,6 +360,7 @@ export default function RegistrationScreen() {
               />
               <AppInput
                 label="E-mail"
+                id="registration-email"
                 value={values.email}
                 onChangeText={(value) => updateValue('email', value)}
                 error={errors.email}
@@ -312,6 +370,7 @@ export default function RegistrationScreen() {
               />
               <AppInput
                 label="Senha"
+                id="registration-password"
                 value={values.password}
                 onChangeText={(value) => updateValue('password', value)}
                 error={errors.password}
@@ -387,9 +446,28 @@ function getRegistrationError(message: string) {
     return 'Este e-mail já está cadastrado. Tente entrar pela tela de login.';
   }
 
+  if (normalizedMessage.includes('redirect')) {
+    return 'O link de confirmação ainda não está autorizado para este aplicativo. Configure “entrelacos://login” nas URLs de redirecionamento do Supabase.';
+  }
+
+  if (normalizedMessage.includes('database error saving new user')) {
+    return 'Não foi possível finalizar o cadastro. Verifique se a configuração do perfil no Supabase está atualizada.';
+  }
+
+  if (normalizedMessage.includes('signups not allowed')) {
+    return 'O cadastro de novos usuários está desativado no Supabase.';
+  }
+
+  if (normalizedMessage.includes('rate limit')) {
+    return 'O limite de envio de e-mails foi atingido. Aguarde alguns minutos antes de tentar novamente.';
+  }
+
   if (normalizedMessage.includes('password')) {
     return 'A senha não atende aos requisitos de segurança.';
   }
 
-  return 'Revise os dados e tente novamente. Se o problema continuar, tente mais tarde.';
+  const reason = message.trim();
+  return reason
+    ? `Não foi possível concluir o cadastro. Motivo informado pelo serviço: ${reason}`
+    : 'Não foi possível concluir o cadastro. Verifique os dados e tente novamente.';
 }
