@@ -2,8 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Link, Redirect, type RelativePathString } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform } from 'react-native';
-import { Button, getTokens, H2, Paragraph, ScrollView, SizableText, Spinner, useTheme, XStack, YStack } from 'tamagui';
+import { Button, getTokens, Paragraph, ScrollView, SizableText, Spinner, useTheme, XStack, YStack } from 'tamagui';
 
+import { AppHeader } from '@/components/app-header';
 import { AppInput } from '@/components/app-input';
 import { AppScreen } from '@/components/app-screen';
 import { BrandButton } from '@/components/brand-button';
@@ -14,6 +15,7 @@ const forgotPasswordPath = '/forgot-password' as RelativePathString;
 const patientPath = '/(patient)' as RelativePathString;
 const patientPendingPath = '/(patient)/pending' as RelativePathString;
 const professionalPath = '/(professional)' as RelativePathString;
+const registrationPath = '/cadastro' as RelativePathString;
 type Errors = Partial<Record<'email' | 'password' | 'inviteCode', string>>;
 
 export default function LoginScreen() {
@@ -71,21 +73,16 @@ export default function LoginScreen() {
       setSubmitting(false);
     }
   }
-
   return (
     <AppScreen>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} flex={1}>
           <YStack flex={1} justify="center" gap="$6" maxW={520} width="100%" self="center" py="$6">
-            <YStack gap="$2">
-              <SizableText size="$2" color="$brand" fontWeight="800" letterSpacing={2}>
-                ENTRELAÇOS
-              </SizableText>
-              <H2 color="$color" fontWeight="800">Bem-vindo de volta</H2>
-              <Paragraph color="$muted" size="$4">
-                Selecione seu perfil e acesse sua conta com segurança.
-              </Paragraph>
-            </YStack>
+            <AppHeader
+              eyebrow="ENTRELAÇOS"
+              title="Bem-vindo de volta"
+              description="Selecione seu perfil e acesse sua conta com segurança."
+            />
 
             <YStack gap="$2" accessibilityRole="radiogroup" aria-label="Tipo de acesso">
               <SizableText color="$muted" size="$3" fontWeight="600">Entrar como</SizableText>
@@ -200,14 +197,15 @@ export default function LoginScreen() {
 
               <XStack items="center" justify="center" gap="$1" flexWrap="wrap" py="$2">
                 <Paragraph color="$muted">Primeiro acesso?</Paragraph>
-                <BrandButton
-                  chromeless
-                  color="$brand"
-                  disabled
-                  accessibilityHint="A rota será conectada quando a tela de cadastro estiver disponível."
-                >
-                  Cadastre-se como {role === 'patient' ? 'paciente' : 'profissional'}
-                </BrandButton>
+                <Link href={registrationPath} asChild>
+                  <BrandButton
+                    chromeless
+                    color="$brand"
+                    accessibilityHint="Abre a tela de criação de conta."
+                  >
+                    Cadastre-se
+                  </BrandButton>
+                </Link>
               </XStack>
             </YStack>
           </YStack>
