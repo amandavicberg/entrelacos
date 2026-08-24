@@ -1,5 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
+import { secureStorage } from '@/lib/secure-storage';
+
 type PublicSupabaseConfig = {
   url: string;
   publishableKey: string;
@@ -32,7 +34,8 @@ export function getSupabaseClient(): SupabaseClient {
       auth: {
         autoRefreshToken: true,
         detectSessionInUrl: false,
-        persistSession: false,
+        persistSession: true,
+        storage: secureStorage,
       },
     });
   }
