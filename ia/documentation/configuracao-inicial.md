@@ -145,3 +145,16 @@ implementadas, e nenhuma policy de escrita foi aberta ao aplicativo.
 Registros de acompanhamento, consultas, arquivos, grupos e materiais ainda
 não possuem tabelas e devem ser adicionados em migrations próprias quando as
 respectivas funcionalidades forem implementadas.
+
+## Manutenção do lockfile e CI
+
+O workflow usa Node 22 e `npm ci` no Ubuntu. Em 2026-08-24, o
+`frontend/package-lock.json` foi regenerado com npm 10 e dependências opcionais
+incluídas para corrigir a ausência das variantes `@emnapi` necessárias no
+Linux/WASM. A validação equivalente ao runner foi executada com
+`npm@10 ci --dry-run --ignore-scripts --os=linux --cpu=x64` e concluída com
+sucesso.
+
+Ao adicionar dependências nativas a partir do Windows, não remover do lockfile
+pacotes opcionais de outras plataformas. Antes de enviar um PR, validar o
+lockfile com a versão principal do npm usada pelo Node configurado em `.nvmrc`.
