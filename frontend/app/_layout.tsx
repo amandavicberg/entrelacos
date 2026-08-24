@@ -25,6 +25,7 @@ export default function RootLayout() {
         <AuthProvider>
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="cadastro" options={{ headerShown: false }} />
             <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
             <Stack.Screen name="(patient)" options={{ headerShown: false }} />
             <Stack.Screen name="(professional)" options={{ headerShown: false }} />
