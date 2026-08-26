@@ -6,6 +6,7 @@ import { TamaguiProvider } from 'tamagui';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import config from '@/tamagui.config';
+import { AuthProvider } from '@/contexts/auth-context';
 
 export const unstable_settings = {
   anchor: 'index',
@@ -21,11 +22,15 @@ export default function RootLayout() {
       disableInjectCSS
     >
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="(patient)" options={{ headerShown: false }} />
-          <Stack.Screen name="(professional)" options={{ headerShown: false }} />
-        </Stack>
+        <AuthProvider>
+          <Stack>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="cadastro" options={{ headerShown: false }} />
+            <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
+            <Stack.Screen name="(patient)" options={{ headerShown: false }} />
+            <Stack.Screen name="(professional)" options={{ headerShown: false }} />
+          </Stack>
+        </AuthProvider>
         <StatusBar style="auto" />
       </ThemeProvider>
     </TamaguiProvider>

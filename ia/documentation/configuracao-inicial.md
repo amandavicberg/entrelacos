@@ -76,8 +76,8 @@ A migration inicial em
 [`supabase/migrations/20260823_000001_identity_and_relationships.sql`](../../supabase/migrations/20260823_000001_identity_and_relationships.sql)
 define perfis, perfis específicos de paciente e profissional, convites e
 associações. Ela inclui constraints, índices, triggers de atualização, RLS e
-policies mínimas de leitura. A migration foi criada, mas não aplicada a nenhum
-banco.
+policies mínimas de leitura. A migration foi aplicada ao Supabase local em
+2026-08-24, mas não a projeto remoto.
 
 As tabelas criadas pela migration são:
 
@@ -130,13 +130,31 @@ associado e usuário desativado.
 - adicionar migrations de acompanhamento com constraints, RLS e policies;
 - substituir os placeholders pelas telas reais.
 
-A tela de login ainda não foi implementada.
+A entrada do aplicativo agora possui autenticação por e-mail e senha para
+paciente e profissional, persistência móvel com `expo-secure-store`, validação
+do papel em `profiles` e guards nas áreas protegidas. O funcionamento detalhado
+está documentado em [`features/tela-login.md`](features/tela-login.md).
 
-O fluxo de onboarding e aprovação ainda não está implementado. As policies de
-escrita não foram abertas para usuários autenticados; a criação e aprovação de
-perfis, convites e associações deve passar pelo backend/service role até que os
-endpoints e suas validações estejam definidos.
+O consumo do código de convite e a criação da associação `pending` foram
+preparados no backend e na migration
+`20260824_000002_consume_patient_invite.sql`. A migration foi aplicada somente
+ao Supabase local em 2026-08-24 e validada por `supabase db lint --local`, sem
+erros de schema; não foi aplicada remotamente. A geração de convites e a aprovação profissional continuam não
+implementadas, e nenhuma policy de escrita foi aberta ao aplicativo.
 
 Registros de acompanhamento, consultas, arquivos, grupos e materiais ainda
 não possuem tabelas e devem ser adicionados em migrations próprias quando as
 respectivas funcionalidades forem implementadas.
+
+## Manutenção do lockfile e CI
+
+O workflow usa Node 22 e `npm ci` no Ubuntu. Em 2026-08-24, o
+`frontend/package-lock.json` foi regenerado com npm 10 e dependências opcionais
+incluídas para corrigir a ausência das variantes `@emnapi` necessárias no
+Linux/WASM. A validação equivalente ao runner foi executada com
+`npm@10 ci --dry-run --ignore-scripts --os=linux --cpu=x64` e concluída com
+sucesso.
+
+Ao adicionar dependências nativas a partir do Windows, não remover do lockfile
+pacotes opcionais de outras plataformas. Antes de enviar um PR, validar o
+lockfile com a versão principal do npm usada pelo Node configurado em `.nvmrc`.
