@@ -173,6 +173,23 @@ Priorizar hierarquia visual, legibilidade, feedback de ações, navegação prev
 
 O Tamagui está configurado no frontend como base visual compartilhada. Sua configuração, tokens e componentes comuns devem ser reutilizados antes da criação de estilos ou componentes específicos de uma feature.
 
+### Jornada inicial e linguagem visual
+
+A primeira tela pública do aplicativo deve apresentar o propósito do
+EntreLaços e oferecer uma ação principal clara para iniciar. A autenticação
+fica em uma rota própria, acessada após essa apresentação ou pelo atalho de
+quem já possui acesso. Cadastro, confirmação de e-mail, recuperação de senha e
+pendência de associação fazem parte da mesma jornada e devem manter retornos
+explícitos e previsíveis.
+
+A linguagem visual deve usar superfícies claras ou escuras conforme o tema,
+cores de saúde em verde/teal, tipografia legível, bastante respiro funcional e
+um CTA principal por tela. Formulários devem ter hierarquia simples, campos
+confortáveis e ações secundárias discretas. Curvas, formas geométricas suaves e
+ícones podem reforçar acolhimento e conexão, mas não podem reduzir contraste,
+acessibilidade ou clareza. Não introduzir login social, ilustrações complexas
+ou elementos decorativos sem necessidade de produto.
+
 ### Base compartilhada do frontend
 
 A navegação inicial, os tokens visuais e os componentes compartilhados devem
@@ -219,18 +236,28 @@ Se uma solicitação conflitar com segurança, autorização ou integridade dos 
 
 ## 13. Registro de trabalho
 
-Todo plano deve ser salvo em `ia/plan/` antes da implementação. O plano deve
-conter etapas em formato de checklist, cobrindo tudo o que será feito, e uma
-checklist separada de testes manuais para execução e confirmação pelo
-programador ou responsável pela validação. Conforme o trabalho avança, os
-itens executados devem ser marcados no próprio plano; itens não executados ou
-bloqueados devem permanecer identificados.
+Todo plano deve ser salvo em `ia/plan/` antes da implementação. Os nomes dos
+planos não devem conter datas; devem usar um nome curto, identificável e
+estável, no formato `nome-da-task.md`.
 
-A documentação em `ia/documentation/` só deve ser criada ou alterada quando
-houver autorização explícita do programador/responsável pela task. Não criar
-documentação automaticamente ao concluir uma implementação. Quando autorizada,
-a documentação deve descrever o funcionamento real, decisões, validações,
-limitações e orientações de manutenção.
+Deve existir somente um plano para cada tarefa. Se o escopo mudar ou surgirem
+novos aspectos da mesma tarefa, atualizar o plano existente em vez de criar
+um plano paralelo ou uma nova versão do arquivo.
+
+O plano deve conter etapas em formato de checklist, cobrindo tudo o que será
+feito, e uma checklist separada de testes manuais para execução e confirmação
+pelo programador ou responsável pela validação. O plano é o registro de escopo
+e decisão da tarefa, não um diário de alterações: não é necessário atualizá-lo
+a cada edição incremental. Atualizá-lo somente em marcos relevantes, como
+mudança de escopo, decisão importante, bloqueio, validação significativa ou
+conclusão da tarefa. Nesses momentos, os itens executados devem ser marcados e
+os não executados ou bloqueados devem permanecer identificados.
+
+A documentação em `ia/documentation/` não deve ser criada nem alterada até que
+o usuário, programador ou responsável pela task solicite explicitamente essa
+ação. Não criar documentação automaticamente ao concluir uma implementação.
+Quando autorizada, a documentação deve descrever o funcionamento real,
+decisões, validações, limitações e orientações de manutenção.
 
 Esses diretórios fazem parte do histórico oficial do projeto e não devem
 conter segredos, dados reais de pacientes ou funcionalidades apenas planejadas.

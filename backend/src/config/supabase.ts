@@ -1,5 +1,16 @@
 import "dotenv/config";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type RealtimeClientOptions } from "@supabase/supabase-js";
+import WebSocket from "ws";
+
+class NodeWebSocket extends WebSocket {
+  constructor(address: string | URL, protocols?: string | string[]) {
+    super(address, protocols);
+  }
+}
+
+const nodeWebSocketTransport = NodeWebSocket as unknown as NonNullable<
+  RealtimeClientOptions["transport"]
+>;
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
@@ -19,6 +30,9 @@ export const supabase = createClient(
     auth: {
       autoRefreshToken: false,
       persistSession: false,
+    },
+    realtime: {
+      transport: nodeWebSocketTransport,
     },
   },
 );

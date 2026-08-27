@@ -28,11 +28,13 @@ async function resolveAccess(session: Session): Promise<AccessState> {
   const supabase = getSupabaseClient();
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, status')
     .eq('id', session.user.id)
     .maybeSingle();
 
-  if (profileError || !profile) throw new Error('Não foi possível validar seu perfil.');
+  if (profileError || !profile || profile.status !== 0) {
+    throw new Error('Não foi possível validar seu perfil.');
+  }
   if (profile.role === 'professional') return 'professional';
   if (profile.role !== 'patient') throw new Error('Perfil de acesso inválido.');
 
@@ -92,10 +94,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     try {
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, status')
         .eq('id', data.session.user.id)
         .maybeSingle();
-      if (profileError || !profile) throw new Error('Não foi possível validar seu perfil.');
+      if (profileError || !profile || profile.status !== 0) {
+        throw new Error('Não foi possível validar seu perfil.');
+      }
       if (profile.role !== role) throw new Error('O tipo de acesso não corresponde ao seu cadastro.');
 
       let nextAccess = await resolveAccess(data.session);

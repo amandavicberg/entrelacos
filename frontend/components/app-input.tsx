@@ -16,7 +16,7 @@ export function AppInput({ label, error, id, startAdornment, endAdornment, ...pr
 
   return (
     <YStack gap="$2">
-      <Label htmlFor={inputId} color="$color" fontWeight="600">
+      <Label htmlFor={inputId} color="$color" fontFamily="$body" fontWeight="600">
         {label}
       </Label>
       {hasAdornment ? (
@@ -39,6 +39,7 @@ export function AppInput({ label, error, id, startAdornment, endAdornment, ...pr
             bg="transparent"
             borderWidth={0}
             focusStyle={{ borderWidth: 0 }}
+            fontFamily="$body"
             aria-describedby={error ? errorId : undefined}
             aria-invalid={Boolean(error)}
             {...props}
@@ -51,11 +52,12 @@ export function AppInput({ label, error, id, startAdornment, endAdornment, ...pr
           aria-describedby={error ? errorId : undefined}
           aria-invalid={Boolean(error)}
           borderColor={error ? '$red10' : '$borderColor'}
+          fontFamily="$body"
           {...props}
         />
       )}
       {error ? (
-        <Label id={errorId} color="$red10" size="$2">
+        <Label id={errorId} color="$red10" fontFamily="$body" size="$2">
           {error}
         </Label>
       ) : null}
