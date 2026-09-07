@@ -1,7 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useIsFocused } from 'expo-router/react-navigation';
 import { Link, Redirect, type RelativePathString } from 'expo-router';
-import { useState } from 'react';
-import { Button, getTokens, Paragraph, SizableText, Spinner, useTheme, XStack, YStack } from 'tamagui';
+import { StatusBar } from 'expo-status-bar';
+import { useRef, useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button, getTokens, Paragraph, SizableText, Spinner, Theme, useTheme, XStack, YStack } from 'tamagui';
 
 import { AuthScreen } from '@/components/auth-screen';
 import { AppInput } from '@/components/app-input';
@@ -17,6 +20,19 @@ const registrationPath = '/cadastro' as RelativePathString;
 type Errors = Partial<Record<'email' | 'password' | 'inviteCode', string>>;
 
 export default function LoginScreen() {
+  const isFocused = useIsFocused();
+
+  return (
+    <Theme name="light_login">
+      <YStack flex={1} bg="$background">
+        {isFocused ? <StatusBar style="dark" /> : null}
+        <LoginContent />
+      </YStack>
+    </Theme>
+  );
+}
+
+function LoginContent() {
   const { accessState, signIn } = useAuth();
   const theme = useTheme();
   const tokens = getTokens();
@@ -29,8 +45,13 @@ export default function LoginScreen() {
   const [errors, setErrors] = useState<Errors>({});
   const [feedback, setFeedback] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const submissionInFlight = useRef(false);
 
-  if (accessState === 'loading') return <FeedbackState status="loading" title="Validando sessão" />;
+  if (accessState === 'loading') return (
+    <SafeAreaView style={{ flex: 1, justifyContent: 'center' }}>
+      <FeedbackState status="loading" title="Validando sessão" />
+    </SafeAreaView>
+  );
   if (accessState === 'professional') return <Redirect href={professionalPath} />;
   if (accessState === 'patient-active') return <Redirect href={patientPath} />;
   if (accessState === 'patient-pending') return <Redirect href={patientPendingPath} />;
@@ -56,12 +77,16 @@ export default function LoginScreen() {
   }
 
   async function handleSubmit() {
-    if (submitting) return;
+    if (submissionInFlight.current) return;
     const nextErrors = validate();
     setErrors(nextErrors);
     setFeedback('');
-    if (Object.keys(nextErrors).length) return;
+    if (Object.keys(nextErrors).length) {
+      if (nextErrors.inviteCode) setIsInviteExpanded(true);
+      return;
+    }
 
+    submissionInFlight.current = true;
     setSubmitting(true);
     try {
       await signIn({
@@ -77,45 +102,57 @@ export default function LoginScreen() {
       }
       setFeedback(message);
     } finally {
+      submissionInFlight.current = false;
       setSubmitting(false);
     }
   }
 
   return (
     <AuthScreen
-      title="Cuidado que aproxima."
-      description="Organize seu acompanhamento com segurança, proximidade e clareza."
+      compact
+      maxW={tokens.size.loginContent.val}
+      brand={<SizableText color="$brand" fontFamily="$heading" size="$6">EntreLaços</SizableText>}
+      title="Seu cuidado continua aqui"
+      description="Selecione seu perfil para acessar sua conta."
       footer={
         <XStack items="center" justify="center" gap="$1" flexWrap="wrap" pb="$2">
-          <Paragraph color="$muted">É sua primeira vez por aqui?</Paragraph>
+          <Paragraph color="$muted">Ainda não tem conta?</Paragraph>
           <Link href={registrationPath} asChild>
-            <Button chromeless color="$brand" fontWeight="800" accessibilityHint="Abre a tela de criação de conta.">
-              Criar acesso
+            <Button chromeless minH="$touchTarget" height="auto" py="$2" px="$2" color="$brand" fontFamily="$heading" textProps={{ textDecorationLine: 'underline' }} accessibilityHint="Abre a tela de criação de conta.">
+              Cadastre-se
             </Button>
           </Link>
         </XStack>
       }
     >
-      <YStack gap="$3">
-        <YStack gap="$2" accessibilityRole="radiogroup" aria-label="Tipo de acesso">
-          <SizableText color="$muted" size="$3" fontWeight="700">Seu perfil</SizableText>
-          <XStack gap="$1" p="$1" bg="$backgroundHover" borderWidth={1} borderColor="$borderColor" style={{ borderRadius: tokens.radius.$5.val }}>
+      <YStack gap="$4">
+        <YStack gap="$2" role="radiogroup" aria-label="Tipo de acesso">
+          <SizableText color="$color" size="$3" fontWeight="700">Entrar como</SizableText>
+          <XStack gap="$1" p="$1" bg="$backgroundHover" borderWidth={1} borderColor="$borderColor" style={{ borderRadius: tokens.radius.control.val }}>
             {(['patient', 'professional'] as const).map((option) => {
               const selected = role === option;
               return (
                 <Button
                   key={option}
                   flex={1}
-                  minH={44}
+                  minH="$touchTarget"
+                  height="auto"
+                  py="$2"
+                  px="$2"
                   disabled={submitting}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: selected, disabled: submitting }}
+                  role="radio"
+                  aria-checked={selected}
+                  aria-disabled={submitting}
                   bg={selected ? '$brand' : 'transparent'}
                   color={selected ? '$brandContrast' : '$muted'}
-                  borderWidth={0}
+                  borderWidth={2}
+                  borderColor={selected ? '$brand' : 'transparent'}
                   style={{ borderRadius: tokens.radius.$4.val }}
                   fontWeight={selected ? '800' : '600'}
-                  pressStyle={{ scale: 0.98, opacity: 0.9 }}
+                  hoverStyle={{ bg: selected ? '$brandHover' : '$backgroundPress' }}
+                  pressStyle={{ bg: selected ? '$brandPress' : '$backgroundPress' }}
+                  focusVisibleStyle={{ outlineColor: '$outlineColor', outlineWidth: 2, outlineStyle: 'solid' }}
+                  textProps={{ text: 'center', shrink: 1 }}
                   onPress={() => selectRole(option)}
                 >
                   {option === 'patient' ? 'Paciente' : 'Profissional'}
@@ -127,6 +164,7 @@ export default function LoginScreen() {
 
         <YStack gap="$4">
           <AppInput
+            appearance="outlined"
             label="E-mail"
             placeholder="seuemail@exemplo.com"
             value={email}
@@ -136,6 +174,7 @@ export default function LoginScreen() {
             autoCorrect={false}
             autoComplete="email"
             keyboardType="email-address"
+            type="email"
             textContentType="emailAddress"
             returnKeyType="next"
             disabled={submitting}
@@ -144,6 +183,7 @@ export default function LoginScreen() {
 
           <YStack gap="$1">
             <AppInput
+              appearance="outlined"
               label="Senha"
               placeholder="Digite sua senha"
               value={password}
@@ -154,43 +194,54 @@ export default function LoginScreen() {
               autoComplete="current-password"
               textContentType="password"
               secureTextEntry={!showPassword}
+              type={showPassword ? 'text' : 'password'}
               returnKeyType="done"
               onSubmitEditing={handleSubmit}
               disabled={submitting}
               startAdornment={<Ionicons name="lock-closed-outline" size={19} color={theme.muted.val} />}
               endAdornment={
                 <Button
-                  circular
                   chromeless
                   size="$3"
+                  minH="$touchTarget"
+                  minW="$touchTarget"
+                  height="auto"
+                  py="$2"
+                  px="$1"
+                  color="$brand"
                   disabled={submitting}
-                  accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                  accessibilityState={{ expanded: showPassword, disabled: submitting }}
-                  icon={<Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={theme.muted.val} />}
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  aria-pressed={showPassword}
+                  aria-disabled={submitting}
                   onPress={() => setShowPassword((value) => !value)}
-                />
+                >
+                  {showPassword ? 'Ocultar' : 'Mostrar'}
+                </Button>
               }
             />
             <Link href={forgotPasswordPath} asChild>
-              <Button chromeless size="$3" self="flex-end" color="$brand" fontWeight="700">
+              <Button chromeless size="$3" minH="$touchTarget" height="auto" py="$2" px="$1" self="flex-end" color="$brand" fontWeight="700">
                 Esqueci minha senha
               </Button>
             </Link>
           </YStack>
 
           {role === 'patient' ? (
-            <YStack gap="$2" p="$3" bg="$backgroundHover" borderWidth={1} borderColor="$borderColor" style={{ borderRadius: tokens.radius.$4.val }}>
+            <YStack gap="$2" p="$3" bg="$backgroundHover" borderWidth={1} borderColor="$borderColor" style={{ borderRadius: tokens.radius.control.val }}>
               <Button
                 chromeless
                 justify="space-between"
                 px={0}
-                minH={36}
+                minH="$touchTarget"
+                height="auto"
+                py="$1"
                 disabled={submitting}
-                accessibilityLabel="Primeiro acesso com código de convite"
-                accessibilityState={{ expanded: isInviteExpanded, disabled: submitting }}
+                aria-label="Primeiro acesso com código de convite"
+                aria-expanded={isInviteExpanded}
+                aria-disabled={submitting}
                 onPress={() => setIsInviteExpanded((value) => !value)}
               >
-                <YStack flex={1} gap="$1">
+                <YStack flex={1} minW={0} gap="$1">
                   <SizableText color="$color" fontWeight="700">Primeiro acesso?</SizableText>
                   <Paragraph color="$muted" size="$2">Tenho um código de convite.</Paragraph>
                 </YStack>
@@ -199,6 +250,7 @@ export default function LoginScreen() {
               {isInviteExpanded ? (
                 <YStack gap="$2" pt="$1">
                   <AppInput
+                    appearance="outlined"
                     label="Código de convite"
                     placeholder="Informe o código recebido"
                     value={inviteCode}
@@ -218,20 +270,26 @@ export default function LoginScreen() {
           ) : null}
 
           {feedback ? (
-            <YStack p="$3" borderWidth={1} borderColor="$red9" bg="$backgroundHover" style={{ borderRadius: tokens.radius.$4.val }} accessibilityRole="alert">
+            <YStack p="$3" borderWidth={1} borderColor="$red9" bg="$backgroundHover" style={{ borderRadius: tokens.radius.$4.val }} role="alert">
               <Paragraph color="$red10">{feedback}</Paragraph>
             </YStack>
           ) : null}
 
           <BrandButton
             size="$5"
-            minH={56}
+            minH="$control"
+            height="auto"
+            py="$3"
             disabled={submitting}
-            opacity={submitting ? 0.72 : 1}
-            pressStyle={{ scale: 0.98, opacity: 0.9 }}
-            accessibilityLabel={submitting ? 'Entrando' : 'Entrar'}
+            hoverStyle={{ bg: '$brandHover', opacity: 1 }}
+            pressStyle={{ bg: '$brandPress', opacity: 1 }}
+            disabledStyle={{ bg: '$brand', opacity: 1 }}
+            focusVisibleStyle={{ outlineColor: '$outlineColor', outlineWidth: 2, outlineStyle: 'solid' }}
+            aria-busy={submitting}
+            aria-disabled={submitting}
+            aria-label={submitting ? 'Entrando' : 'Entrar'}
             onPress={handleSubmit}
-            style={{ borderRadius: tokens.radius.$5.val }}
+            style={{ borderRadius: tokens.radius.control.val }}
           >
             {submitting ? (
               <XStack items="center" gap="$2">

@@ -1,8 +1,8 @@
 # Constitution do EntreLaços
 
-**Versão:** 1.3.0
+**Versão:** 1.3.1
 **Status:** documento normativo do projeto  
-**Última atualização:** 2026-08-23
+**Última atualização:** 2026-09-07
 
 Este documento é a fonte de verdade para decisões técnicas e de produto do EntreLaços. Toda nova tarefa deve começar pela leitura deste arquivo. Decisões que alterem arquitetura, domínio ou segurança devem atualizar o documento junto com a implementação.
 
@@ -71,7 +71,7 @@ Fluxo esperado: `frontend → autenticação/API/Supabase → PostgreSQL (RLS)`.
 
 - TypeScript no frontend e backend;
 - React Native + Expo para Android/iOS;
-- Expo Router e React Navigation;
+- Expo Router (SDK 57), com APIs de navegação fornecidas pelo próprio Router;
 - Node.js no backend;
 - Supabase e PostgreSQL;
 - `.env` localmente; versionar somente `.env.example`, nunca segredos.

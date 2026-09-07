@@ -131,7 +131,6 @@ export default function RegistrationScreen() {
 
   useEffect(() => {
     if (!isComplete) return;
-    setResendCountdown(60);
     const timer = setInterval(() => {
       setResendCountdown((current) => (current > 0 ? current - 1 : 0));
     }, 1000);
@@ -186,6 +185,7 @@ export default function RegistrationScreen() {
       setSubmitError(getRegistrationError(error.message));
       return;
     }
+    setResendCountdown(60);
     setIsComplete(true);
   }
 

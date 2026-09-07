@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-navigation';
 import {
   Poppins_400Regular,
   Poppins_500Medium,
@@ -37,7 +37,6 @@ export default function RootLayout() {
     <TamaguiProvider
       config={config}
       defaultTheme={colorScheme === 'dark' ? 'dark' : 'light'}
-      disableInjectCSS
     >
       <SafeAreaProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

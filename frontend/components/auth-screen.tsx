@@ -11,19 +11,31 @@ type AuthScreenProps = PropsWithChildren<{
   description: string;
   footer?: ReactNode;
   maxW?: number;
+  brand?: ReactNode;
+  compact?: boolean;
 }>;
 
-export function AuthScreen({ children, title, description, footer, maxW = 500 }: AuthScreenProps) {
+export function AuthScreen({
+  children, title, description, footer, maxW = 500, brand, compact = false,
+}: AuthScreenProps) {
   const tokens = getTokens();
   const theme = useTheme();
 
   return (
-    <AppScreen>
-      <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1 }}>
+    <AppScreen {...(compact ? { px: '$5', py: 0 } : {})}>
+      <SafeAreaView edges={compact ? ['top', 'bottom', 'left', 'right'] : ['top', 'bottom']} style={{ flex: 1 }}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <YStack width="100%" maxW={maxW} self="center" gap="$6" py="$4">
-              <XStack items="center" gap="$2">
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={compact ? { grow: 1 } : undefined}
+          >
+            <YStack
+              width="100%" maxW={maxW} self="center"
+              gap={compact ? '$4' : '$6'} py={compact ? '$5' : '$4'}
+              {...(compact ? { grow: 1, justify: 'center' } : {})}
+            >
+              {brand ?? <XStack items="center" gap="$2">
                 <XStack
                   items="center"
                   justify="center"
@@ -37,10 +49,10 @@ export function AuthScreen({ children, title, description, footer, maxW = 500 }:
                 <SizableText color="$brand" fontFamily="$heading" letterSpacing={1.4} size="$2">
                   ENTRELAÇOS
                 </SizableText>
-              </XStack>
+              </XStack>}
 
               <YStack gap="$2">
-                <SizableText color="$color" fontFamily="$heading" fontSize={30} lineHeight={36}>
+                <SizableText role="heading" color="$color" fontFamily="$heading" fontSize={30} lineHeight={36}>
                   {title}
                 </SizableText>
                 <Paragraph color="$muted" fontFamily="$body" size="$4" lineHeight={23} maxW={390}>
