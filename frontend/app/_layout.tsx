@@ -15,11 +15,27 @@ import { TamaguiProvider } from 'tamagui';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import config from '@/tamagui.config';
-import { AuthProvider } from '@/contexts/auth-context';
+import { AuthProvider, useAuth } from '@/contexts/auth-context';
 
 export const unstable_settings = {
   anchor: 'index',
 };
+
+function RootNavigator() {
+  const { accessState } = useAuth();
+  return (
+    <Stack>
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="login" options={{ headerShown: false }} />
+      <Stack.Screen name="cadastro" options={{ headerShown: false }} />
+      <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
+      <Stack.Screen name="(patient)" options={{ headerShown: false }} />
+      <Stack.Protected guard={accessState === 'professional'}>
+        <Stack.Screen name="(professional)" options={{ headerShown: false }} />
+      </Stack.Protected>
+    </Stack>
+  );
+}
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -41,14 +57,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <AuthProvider>
-            <Stack>
-              <Stack.Screen name="index" options={{ headerShown: false }} />
-              <Stack.Screen name="login" options={{ headerShown: false }} />
-              <Stack.Screen name="cadastro" options={{ headerShown: false }} />
-              <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
-              <Stack.Screen name="(patient)" options={{ headerShown: false }} />
-              <Stack.Screen name="(professional)" options={{ headerShown: false }} />
-            </Stack>
+            <RootNavigator />
           </AuthProvider>
           <StatusBar style="auto" />
         </ThemeProvider>

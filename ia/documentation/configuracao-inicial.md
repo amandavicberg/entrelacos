@@ -8,7 +8,7 @@ organização inicial do frontend.
 
 ## Estrutura atual
 
-- [`frontend/`](../../frontend/): aplicativo React Native com Expo SDK 54,
+- [`frontend/`](../../frontend/): aplicativo React Native com Expo SDK 57,
   TypeScript, Expo Router, React Navigation e Tamagui.
 - [`backend/`](../../backend/): aplicação Node.js com TypeScript e configuração
   server-side do Supabase.
@@ -22,6 +22,13 @@ frontend → autenticação/API/Supabase → PostgreSQL (RLS)
 ```
 
 ## Frontend
+
+A área profissional agora possui painel inicial e quatro abas protegidas. O
+funcionamento atual, as fontes de dados demonstrativos e os passos de validação
+estão em [Tela inicial do profissional](features/tela-inicial-profissional.md).
+Essa entrega também habilita o driver de animação já incluído em
+`@tamagui/config/v5-rn` para o Sheet e permite propriedades visuais adicionais
+no `AppCard`, preservando seus valores padrão.
 
 A navegação inicial está organizada em:
 

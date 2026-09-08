@@ -118,7 +118,7 @@ function LoginContent() {
         <XStack items="center" justify="center" gap="$1" flexWrap="wrap" pb="$2">
           <Paragraph color="$muted">Ainda não tem conta?</Paragraph>
           <Link href={registrationPath} asChild>
-            <Button chromeless minH="$touchTarget" height="auto" py="$2" px="$2" color="$brand" fontFamily="$heading" textProps={{ textDecorationLine: 'underline' }} accessibilityHint="Abre a tela de criação de conta.">
+            <Button chromeless minH="$touchTarget" height="auto" py="$2" px="$2" color="$brand" fontFamily="$heading" textProps={{ textDecorationLine: 'underline' }} aria-label="Cadastre-se. Abre a tela de criação de conta.">
               Cadastre-se
             </Button>
           </Link>
@@ -260,7 +260,7 @@ function LoginContent() {
                     autoCorrect={false}
                     maxLength={64}
                     disabled={submitting}
-                    accessibilityHint="Use somente se você recebeu um convite de um profissional."
+                    aria-label="Tenho um código de convite. Use somente se você recebeu um convite de um profissional."
                     startAdornment={<Ionicons name="key-outline" size={19} color={theme.muted.val} />}
                   />
                   <Paragraph color="$muted" size="$2">Use este código somente se você recebeu um convite.</Paragraph>

@@ -1,4 +1,5 @@
 import { createSystemFont, defaultConfig } from '@tamagui/config/v5';
+import { animations } from '@tamagui/config/v5-rn';
 import { createTamagui } from 'tamagui';
 
 const loginColors = {
@@ -6,6 +7,15 @@ const loginColors = {
   brandHover: '#6C4D35',
   brandPress: '#5F422D',
   inputBorder: '#9A8571',
+};
+
+const professionalLightColors = {
+  soft: '#E6EFE8', pendingBackground: '#FFF2DA', pendingColor: '#805714',
+  declinedBackground: '#F6E8E5', declinedColor: '#95443A',
+};
+const professionalDarkColors = {
+  soft: '#2B4536', pendingBackground: '#493B23', pendingColor: '#F3D18D',
+  declinedBackground: '#49302D', declinedColor: '#F4B7AB',
 };
 
 const poppinsBody = createSystemFont({
@@ -32,11 +42,12 @@ const poppinsHeading = createSystemFont({
 
 export const tamaguiConfig = createTamagui({
   ...defaultConfig,
+  animations,
   tokens: {
     ...defaultConfig.tokens,
     color: loginColors,
     size: { ...defaultConfig.tokens.size, control: 54, touchTarget: 44, loginContent: 440 },
-    radius: { ...defaultConfig.tokens.radius, control: 16 },
+    radius: { ...defaultConfig.tokens.radius, control: 16, panel: 24 },
   },
   fonts: {
     body: poppinsBody,
@@ -44,6 +55,20 @@ export const tamaguiConfig = createTamagui({
   },
   themes: {
     ...defaultConfig.themes,
+    light_professional: {
+      ...defaultConfig.themes.light,
+      ...professionalLightColors,
+      background: '#F7F8F3', surface: '#FFFFFF', color: '#23352D',
+      brand: '#2F6B57', brandContrast: '#FFFFFF', muted: '#5C6B63',
+      borderColor: '#D6DED7',
+    },
+    dark_professional: {
+      ...defaultConfig.themes.dark,
+      ...professionalDarkColors,
+      background: '#14221C', surface: '#1E3027', color: '#EFF6F0',
+      brand: '#A0D3B7', brandContrast: '#14221C', muted: '#B2C6B9',
+      borderColor: '#3B5143',
+    },
     light_login: {
       ...defaultConfig.themes.light,
       ...loginColors,
@@ -70,6 +95,7 @@ export const tamaguiConfig = createTamagui({
     },
     light: {
       ...defaultConfig.themes.light,
+      ...professionalLightColors,
       background: '#F5FAF9',
       color: '#163B3E',
       brand: '#2D7480',
@@ -79,6 +105,7 @@ export const tamaguiConfig = createTamagui({
     },
     dark: {
       ...defaultConfig.themes.dark,
+      ...professionalDarkColors,
       background: '#102426',
       color: '#EFF8F7',
       brand: '#69B7B5',
