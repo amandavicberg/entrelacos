@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect } from 'expo-router';
+import { Redirect, type RelativePathString } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
 import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -48,6 +48,7 @@ export default function ProfessionalLayout() {
   const { accessState } = useAuth();
   const scheme = useColorScheme();
   if (accessState === 'loading') return <FeedbackState status="loading" title="Validando acesso" />;
+  if (accessState === 'signed-out') return <Redirect href={'/login' as RelativePathString} />;
   if (accessState === 'patient-active') return <Redirect href="/(patient)" />;
   if (accessState === 'patient-pending') return <Redirect href="/(patient)/pending" />;
   if (accessState !== 'professional') return <Redirect href="/login" />;
