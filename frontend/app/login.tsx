@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useIsFocused } from 'expo-router/react-navigation';
 import { Link, Redirect, type RelativePathString } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useRef, useState } from 'react';
@@ -8,6 +7,7 @@ import { Button, getTokens, Paragraph, SizableText, Spinner, Theme, useTheme, XS
 
 import { AuthScreen } from '@/components/auth-screen';
 import { AppInput } from '@/components/app-input';
+import { BrandLogo } from '@/components/brand-logo';
 import { BrandButton } from '@/components/brand-button';
 import { FeedbackState } from '@/components/feedback-state';
 import { type AppRole, useAuth } from '@/contexts/auth-context';
@@ -20,12 +20,10 @@ const registrationPath = '/cadastro' as RelativePathString;
 type Errors = Partial<Record<'email' | 'password' | 'inviteCode', string>>;
 
 export default function LoginScreen() {
-  const isFocused = useIsFocused();
-
   return (
     <Theme name="light_login">
       <YStack flex={1} bg="$background">
-        {isFocused ? <StatusBar style="dark" /> : null}
+        <StatusBar style="dark" />
         <LoginContent />
       </YStack>
     </Theme>
@@ -111,7 +109,7 @@ function LoginContent() {
     <AuthScreen
       compact
       maxW={tokens.size.loginContent.val}
-      brand={<SizableText color="$brand" fontFamily="$heading" size="$6">EntreLaços</SizableText>}
+      brand={<BrandLogo width={176} />}
       title="Seu cuidado continua aqui"
       description="Selecione seu perfil para acessar sua conta."
       footer={

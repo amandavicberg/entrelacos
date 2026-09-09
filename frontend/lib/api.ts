@@ -4,6 +4,24 @@ function getApiUrl(): string {
   return url.replace(/\/$/, '');
 }
 
+const apiTimeoutMs = 15_000;
+
+async function fetchApi(url: string, init: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), apiTimeoutMs);
+
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error('A solicitação demorou mais que o esperado. Verifique sua conexão e tente novamente.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export type ProfessionalInvitation = {
   code: string;
   expiresAt: string;
@@ -15,7 +33,7 @@ export type PendingRelationship = {
 };
 
 export async function generateProfessionalInvite(accessToken: string): Promise<ProfessionalInvitation> {
-  const response = await fetch(`${getApiUrl()}/v1/professional/invitations`, {
+  const response = await fetchApi(`${getApiUrl()}/v1/professional/invitations`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -36,7 +54,7 @@ export async function generateProfessionalInvite(accessToken: string): Promise<P
 }
 
 export async function listPendingRelationships(accessToken: string): Promise<PendingRelationship[]> {
-  const response = await fetch(`${getApiUrl()}/v1/professional/relationships/pending`, {
+  const response = await fetchApi(`${getApiUrl()}/v1/professional/relationships/pending`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   const payload = (await response.json().catch(() => null)) as {
@@ -50,7 +68,7 @@ export async function listPendingRelationships(accessToken: string): Promise<Pen
 }
 
 export async function approvePendingRelationship(accessToken: string, relationshipId: string): Promise<void> {
-  const response = await fetch(`${getApiUrl()}/v1/professional/relationships/${relationshipId}/approve`, {
+  const response = await fetchApi(`${getApiUrl()}/v1/professional/relationships/${relationshipId}/approve`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}` },
   });
@@ -59,7 +77,7 @@ export async function approvePendingRelationship(accessToken: string, relationsh
 }
 
 export async function consumePatientInvite(code: string, accessToken: string): Promise<void> {
-  const response = await fetch(`${getApiUrl()}/v1/patient/invitations/consume`, {
+  const response = await fetchApi(`${getApiUrl()}/v1/patient/invitations/consume`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,

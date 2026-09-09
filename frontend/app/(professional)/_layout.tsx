@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect, type RelativePathString } from 'expo-router';
-import { Tabs } from 'expo-router/js-tabs';
+import { Redirect, Tabs, type RelativePathString } from 'expo-router';
 import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Theme, useTheme } from 'tamagui';

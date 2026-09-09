@@ -1,4 +1,3 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-navigation';
 import {
   Poppins_400Regular,
   Poppins_500Medium,
@@ -55,12 +54,10 @@ export default function RootLayout() {
       defaultTheme={colorScheme === 'dark' ? 'dark' : 'light'}
     >
       <SafeAreaProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <AuthProvider>
-            <RootNavigator />
-          </AuthProvider>
-          <StatusBar style="auto" />
-        </ThemeProvider>
+        <AuthProvider>
+          <RootNavigator />
+        </AuthProvider>
+        <StatusBar style="auto" />
       </SafeAreaProvider>
     </TamaguiProvider>
   );

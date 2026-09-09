@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps, PropsWithChildren } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { ScrollView, SizableText, YStack } from 'tamagui';
 
+import { BrandLogo } from '@/components/brand-logo';
 import { AppScreen } from '@/components/app-screen';
 import { initials } from '@/lib/professional-dashboard';
 
@@ -23,12 +24,8 @@ export function ProfessionalScreen({ children }: PropsWithChildren) {
 }
 
 export function ProfessionalBrand() {
-  const theme = useTheme();
   return (
-    <XStack items="center" gap="$2" shrink={1}>
-      <Ionicons name="link-outline" size={24} color={theme.brand.val} accessible={false} />
-      <SizableText fontFamily="$heading" size="$4" color="$brand">EntreLaços</SizableText>
-    </XStack>
+    <BrandLogo width={156} />
   );
 }
 

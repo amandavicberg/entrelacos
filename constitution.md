@@ -1,8 +1,8 @@
 # Constitution do EntreLaços
 
-**Versão:** 1.3.1
+**Versão:** 1.4.0
 **Status:** documento normativo do projeto  
-**Última atualização:** 2026-09-07
+**Última atualização:** 2026-09-08
 
 Este documento é a fonte de verdade para decisões técnicas e de produto do EntreLaços. Toda nova tarefa deve começar pela leitura deste arquivo. Decisões que alterem arquitetura, domínio ou segurança devem atualizar o documento junto com a implementação.
 
@@ -173,6 +173,37 @@ Priorizar hierarquia visual, legibilidade, feedback de ações, navegação prev
 
 O Tamagui está configurado no frontend como base visual compartilhada. Sua configuração, tokens e componentes comuns devem ser reutilizados antes da criação de estilos ou componentes específicos de uma feature.
 
+### Identidade visual obrigatória
+
+A identidade visual oficial do EntreLaços é normativa para toda tela, estado e
+asset novo. A referência é o kit de identidade versionado no frontend; não
+recriar, redesenhar, distorcer, recortar ou recolorir a marca. Os arquivos
+oficiais devem ser utilizados pelo componente compartilhado `BrandLogo` e nas
+configurações de ícone e splash do Expo.
+
+A paleta oficial deve ser acessada pelos tokens semânticos do Tamagui, nunca
+por valores hexadecimais isolados em componentes:
+
+- **Índigo mineral (`#34465C`):** marca, CTA primário e navegação ativa;
+- **Ocre dourado (`#BE914F`):** destaque pontual, detalhes e superfícies de
+  ênfase — não deve competir com a ação principal;
+- **Aço suave (`#91A2AA`):** apoio, divisórias e superfícies secundárias;
+- **Marfim (`#F3EBDD`):** base clara e áreas de leitura;
+- **Tinta (`#292F36`):** textos e informações essenciais.
+
+O sistema deve transmitir vínculo, continuidade, acolhimento e confiança. Os
+laços e costuras da marca podem inspirar composição, ritmo e detalhes sutis,
+mas não devem se tornar ornamentos que prejudiquem contraste, leitura ou foco
+na tarefa. Poppins permanece a fonte de interface por legibilidade; a
+tipografia desenhada do logotipo só é usada no arquivo oficial da marca.
+
+Todo novo componente ou tela deve reutilizar os tokens, temas e componentes
+compartilhados existentes (`AppScreen`, `AppCard`, `BrandButton`, `AppInput`,
+`FeedbackState` e `BrandLogo`) antes de criar um padrão visual. Deve existir
+contraste suficiente, alvo de toque de pelo menos 44 px, suporte a fonte
+ampliada e estados visíveis de foco, pressionado, desabilitado, carregamento,
+erro e vazio quando aplicáveis.
+
 ### Jornada inicial e linguagem visual
 
 A primeira tela pública do aplicativo deve apresentar o propósito do
@@ -182,9 +213,9 @@ quem já possui acesso. Cadastro, confirmação de e-mail, recuperação de senh
 pendência de associação fazem parte da mesma jornada e devem manter retornos
 explícitos e previsíveis.
 
-A linguagem visual deve usar superfícies claras ou escuras conforme o tema,
-cores de saúde em verde/teal, tipografia legível, bastante respiro funcional e
-um CTA principal por tela. Formulários devem ter hierarquia simples, campos
+A linguagem visual deve usar a paleta oficial em superfícies claras ou escuras
+conforme o tema, tipografia legível, bastante respiro funcional e um CTA
+principal por tela. Formulários devem ter hierarquia simples, campos
 confortáveis e ações secundárias discretas. Curvas, formas geométricas suaves e
 ícones podem reforçar acolhimento e conexão, mas não podem reduzir contraste,
 acessibilidade ou clareza. Não introduzir login social, ilustrações complexas

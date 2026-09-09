@@ -1,9 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
 import type { PropsWithChildren, ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getTokens, Paragraph, ScrollView, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { Paragraph, ScrollView, SizableText, YStack } from 'tamagui';
 
+import { BrandLogo } from '@/components/brand-logo';
 import { AppScreen } from '@/components/app-screen';
 
 type AuthScreenProps = PropsWithChildren<{
@@ -18,9 +18,6 @@ type AuthScreenProps = PropsWithChildren<{
 export function AuthScreen({
   children, title, description, footer, maxW = 500, brand, compact = false,
 }: AuthScreenProps) {
-  const tokens = getTokens();
-  const theme = useTheme();
-
   return (
     <AppScreen {...(compact ? { px: '$5', py: 0 } : {})}>
       <SafeAreaView edges={compact ? ['top', 'bottom', 'left', 'right'] : ['top', 'bottom']} style={{ flex: 1 }}>
@@ -35,21 +32,7 @@ export function AuthScreen({
               gap={compact ? '$4' : '$6'} py={compact ? '$5' : '$4'}
               {...(compact ? { grow: 1, justify: 'center' } : {})}
             >
-              {brand ?? <XStack items="center" gap="$2">
-                <XStack
-                  items="center"
-                  justify="center"
-                  width={36}
-                  height={36}
-                  bg="$brand"
-                  style={{ borderRadius: tokens.radius.$6.val }}
-                >
-                  <Ionicons name="link-outline" size={20} color={theme.brandContrast.val} />
-                </XStack>
-                <SizableText color="$brand" fontFamily="$heading" letterSpacing={1.4} size="$2">
-                  ENTRELAÇOS
-                </SizableText>
-              </XStack>}
+              {brand ?? <BrandLogo width={176} />}
 
               <YStack gap="$2">
                 <SizableText role="heading" color="$color" fontFamily="$heading" fontSize={30} lineHeight={36}>

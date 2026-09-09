@@ -5,6 +5,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { supabase } from "./config/supabase.js";
 
 const port = Number(process.env.PORT ?? 3333);
+const host = process.env.HOST ?? "0.0.0.0";
 const corsOrigin = process.env.CORS_ORIGIN ?? "http://localhost:8081";
 const maxBodyBytes = 2_048;
 
@@ -282,6 +283,6 @@ const server = createServer(async (request, response) => {
   }
 });
 
-server.listen(port, () => {
-  console.log(`Backend do EntreLaços disponível na porta ${port}.`);
+server.listen(port, host, () => {
+  console.log(`Backend do EntreLaços disponível em http://${host}:${port}.`);
 });

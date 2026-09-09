@@ -9,6 +9,8 @@ export function BrandButton(props: BrandButtonProps) {
       bg="$brand"
       color="$brandContrast"
       fontFamily="$heading"
+      minH="$touchTarget"
+      rounded="$control"
       pressStyle={{ opacity: 0.82 }}
       hoverStyle={{ opacity: 0.92 }}
       {...props}

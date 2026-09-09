@@ -1,8 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Link, Redirect, type RelativePathString } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, getTokens, Paragraph, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { Button, getTokens, Paragraph, SizableText, YStack } from 'tamagui';
 
+import { BrandLogo } from '@/components/brand-logo';
 import { AppScreen } from '@/components/app-screen';
 import { FeedbackState } from '@/components/feedback-state';
 import { useAuth } from '@/contexts/auth-context';
@@ -14,7 +14,6 @@ const professionalPath = '/(professional)' as RelativePathString;
 
 export default function WelcomeScreen() {
   const { accessState } = useAuth();
-  const theme = useTheme();
   const tokens = getTokens();
 
   if (accessState === 'loading') return <FeedbackState status="loading" title="Preparando seu acesso" />;
@@ -27,21 +26,7 @@ export default function WelcomeScreen() {
       <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1 }}>
         <YStack flex={1} width="100%" maxW={500} self="center" py="$4" gap="$6">
           <YStack items="center" gap="$5" pt="$4">
-            <XStack items="center" gap="$2">
-              <XStack
-                items="center"
-                justify="center"
-                width={48}
-                height={48}
-                bg="$brand"
-                style={{ borderRadius: tokens.radius.$6.val }}
-              >
-                <Ionicons name="link-outline" size={26} color={theme.brandContrast.val} />
-              </XStack>
-              <SizableText color="$brand" fontFamily="$heading" letterSpacing={1.5} size="$3">
-                ENTRELAÇOS
-              </SizableText>
-            </XStack>
+            <BrandLogo width={220} />
 
             <YStack items="center" gap="$3" px="$2">
               <SizableText

@@ -1,10 +1,10 @@
-import { BottomTabBarButtonProps } from 'expo-router/js-tabs';
-import { PlatformPressable } from 'expo-router/react-navigation';
+import type { ComponentProps } from 'react';
+import { Pressable } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
-export function HapticTab(props: BottomTabBarButtonProps) {
+export function HapticTab(props: ComponentProps<typeof Pressable>) {
   return (
-    <PlatformPressable
+    <Pressable
       {...props}
       onPressIn={(ev) => {
         if (process.env.EXPO_OS === 'ios') {

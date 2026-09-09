@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "frontend",
-    "slug": "frontend",
+    "name": "EntreLaços",
+    "slug": "entrelacos",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -12,7 +12,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E4F1F0",
+        "backgroundColor": "#34465C",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -31,16 +31,14 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#F5FAF9",
+          "backgroundColor": "#F3EBDD",
           "dark": {
-            "backgroundColor": "#102426"
+            "backgroundColor": "#202B38"
           }
         }
       ],
       "expo-secure-store",
       "expo-font",
-      "expo-image",
-      "expo-status-bar",
       "expo-web-browser"
     ],
     "experiments": {
