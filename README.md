@@ -3,7 +3,7 @@ Plataforma digital para acompanhamento entre pacientes e profissionais, desenvol
 
 ## Requisitos
 
-- Node.js 22 (o Expo SDK 54 requer Node.js 20.19 ou superior);
+- Node.js 22.13 ou superior (requisito mínimo do Expo SDK 57);
 - npm;
 - uma configuração do Supabase para executar as integrações.
 
@@ -64,8 +64,11 @@ cd backend
 npm run dev
 ```
 
-O backend atual é apenas a inicialização da configuração do Supabase; ainda
-não há endpoints HTTP de domínio.
+O backend expõe os endpoints mínimos do fluxo de convite: geração pelo
+profissional, consumo pelo paciente, listagem de solicitações pendentes e
+aprovação da associação. Consulte
+[`ia/documentation/backend-conectividade.md`](ia/documentation/backend-conectividade.md)
+para requisitos de rede em dispositivo físico.
 
 ## Banco local e migrations
 

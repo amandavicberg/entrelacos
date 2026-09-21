@@ -52,3 +52,11 @@ export async function resendConfirmationEmail(email: string) {
     },
   });
 }
+
+export async function requestPasswordReset(email: string) {
+  const supabase = getSupabaseClient();
+
+  return supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: Linking.createURL('reset-password'),
+  });
+}

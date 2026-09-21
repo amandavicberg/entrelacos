@@ -6,10 +6,12 @@ Esta documentação reúne o estado final da configuração inicial do projeto e
 a referência técnica da base compartilhada, dos padrões visuais e da
 organização inicial do frontend.
 
+**Status:** atualizado em 2026-09-09.
+
 ## Estrutura atual
 
 - [`frontend/`](../../frontend/): aplicativo React Native com Expo SDK 57,
-  TypeScript, Expo Router, React Navigation e Tamagui.
+  TypeScript, Expo Router e Tamagui.
 - [`backend/`](../../backend/): aplicação Node.js com TypeScript e configuração
   server-side do Supabase.
 - Supabase: integração preparada para autenticação, PostgreSQL, RLS, Storage e
@@ -23,10 +25,11 @@ frontend → autenticação/API/Supabase → PostgreSQL (RLS)
 
 ## Frontend
 
-A área profissional agora possui painel inicial e quatro abas protegidas. O
-funcionamento atual, as fontes de dados demonstrativos e os passos de validação
-estão em [Tela inicial do profissional](features/tela-inicial-profissional.md).
-Essa entrega também habilita o driver de animação já incluído em
+A área profissional possui painel inicial e quatro abas protegidas. Os dados
+demonstrativos ficam separados da interface em
+`frontend/lib/professional-dashboard.ts`, e os testes correspondentes estão em
+`frontend/scripts/professional-dashboard.test.mjs`. Essa entrega também
+habilita o driver de animação já incluído em
 `@tamagui/config/v5-rn` para o Sheet e permite propriedades visuais adicionais
 no `AppCard`, preservando seus valores padrão.
 
@@ -40,9 +43,12 @@ A navegação inicial está organizada em:
 As rotas de exemplo do template Expo (`(tabs)`, `explore` e `modal`) foram
 removidas para evitar caminhos paralelos.
 
-As áreas de paciente e profissional ainda são placeholders. Elas não
-representam autenticação nem autorização e não devem ser usadas como proteção
-de dados.
+As áreas de paciente e profissional possuem guards por sessão, perfil e estado
+da associação. Eles não substituem RLS, que continua sendo a camada de
+autorização dos dados. A tela do paciente é uma composição local: os campos de
+sentimento e anotação ainda não persistem porque o modelo de acompanhamento não
+foi criado. O painel profissional apresenta dados demonstrativos identificados
+como fictícios, exceto perfil próprio e fluxo de convites.
 
 O Tamagui está configurado em `frontend/tamagui.config.ts` com temas claro e
 escuro e tokens de identidade do EntreLaços. A integração com o Metro está em
@@ -56,11 +62,7 @@ Componentes compartilhados disponíveis:
 - `AppInput`: campo rotulado com estado de erro;
 - `AppCard`: cartão de conteúdo;
 - `FeedbackState`: estados de carregamento, vazio e erro.
-
-Também permanecem componentes auxiliares trazidos pelo template Expo, como
-`ThemedText`, `ThemedView`, `ExternalLink`, `HapticTab`, `Collapsible` e
-`IconSymbol`. Eles devem ser reutilizados ou removidos quando sua necessidade
-for avaliada; não devem originar novos padrões concorrentes ao Tamagui.
+- `BrandLogo`: uso exclusivo dos assets oficiais de marca.
 
 Novas telas devem reutilizar esses componentes e os tokens do Tamagui antes de
 criar estilos ou padrões paralelos. Devem considerar acessibilidade,
@@ -70,11 +72,14 @@ responsividade e estados de carregamento, erro e vazio.
 
 O cliente público do frontend está em `frontend/lib/supabase.ts` e é criado sob
 demanda. Ele usa `autoRefreshToken: true`, `detectSessionInUrl: false` e
-`persistSession: false`. Essa configuração evita persistir sessão antes de a
-estratégia de autenticação segura ser definida.
+persistência em `expo-secure-store` no mobile; na web, a sessão fica apenas em
+memória. O `AuthProvider` trata o retorno do deep link de recuperação de senha
+e não armazena a chave secreta do Supabase.
 
-Não há leitura ou escrita de dados de usuário nesta base. A configuração
-server-side do backend está em `backend/src/config/supabase.ts`.
+O aplicativo lê somente o perfil da pessoa autenticada, suas relações e o
+perfil profissional próprio, sujeitos às policies existentes. Geração,
+consumo e aprovação de convite usam o backend, cuja configuração server-side
+está em `backend/src/config/supabase.ts`.
 
 As dependências adicionadas ao frontend para essa fundação são `tamagui`,
 `@tamagui/config`, `@tamagui/metro-plugin` e `@supabase/supabase-js`.
@@ -124,30 +129,37 @@ a uma tela de pendência/bloqueio e não acessa dados do produto. O paciente nã
 pode criar registros antes de possuir uma associação `active`. A quantidade de
 profissionais associados por paciente ainda está pendente de decisão.
 
-Os placeholders não são proteção de acesso. A autorização real deverá proteger
-telas, consultas e escritas, considerando paciente, profissional, usuário não
-associado e usuário desativado.
+O `AuthProvider` resolve o perfil autenticado e as relações ativas ou
+pendentes. Profissionais entram na área profissional; pacientes ativos entram
+na área de paciente; pacientes sem relação ativa permanecem em `/(patient)/pending`.
+Falha na validação encerra a sessão local. As policies do banco permanecem
+necessárias para toda leitura ou escrita.
 
 ## Próximos passos
 
-- definir o fluxo de autenticação e persistência de sessão;
-- definir o modelo de perfis e permissões;
+- completar os testes integrados com Supabase local e a configuração de URLs
+  de redirecionamento para confirmação e recuperação de senha;
 - decidir se um paciente pode ter um ou vários profissionais ativos;
-- implementar o fluxo de convite e aprovação;
 - adicionar migrations de acompanhamento com constraints, RLS e policies;
-- substituir os placeholders pelas telas reais.
+- substituir dados demonstrativos por consultas autorizadas quando as tabelas
+  correspondentes existirem;
+- definir verificação ou credenciamento antes de permitir uso real do cadastro
+  de profissionais.
 
-A entrada do aplicativo agora possui autenticação por e-mail e senha para
-paciente e profissional, persistência móvel com `expo-secure-store`, validação
-do papel em `profiles` e guards nas áreas protegidas. O funcionamento detalhado
-está documentado em [`features/tela-login.md`](features/tela-login.md).
+A entrada do aplicativo possui cadastro, confirmação de e-mail, autenticação
+por e-mail e senha e recuperação de senha para paciente e profissional,
+persistência móvel com `expo-secure-store`, validação do papel em `profiles` e
+guards nas áreas protegidas. A recuperação solicita o link pelo Supabase para
+`entrelacos://reset-password`, troca a senha somente após uma sessão de
+recuperação válida e encerra essa sessão antes de retornar ao login.
 
 O consumo do código de convite e a criação da associação `pending` foram
 preparados no backend e na migration
 `20260824_000002_consume_patient_invite.sql`. A migration foi aplicada somente
 ao Supabase local em 2026-08-24 e validada por `supabase db lint --local`, sem
-erros de schema; não foi aplicada remotamente. A geração de convites e a aprovação profissional continuam não
-implementadas, e nenhuma policy de escrita foi aberta ao aplicativo.
+erros de schema; não foi aplicada remotamente. A geração de convites, o
+consumo pelo paciente e a aprovação profissional são operações server-side;
+nenhuma policy de escrita foi aberta ao aplicativo público.
 
 Registros de acompanhamento, consultas, arquivos, grupos e materiais ainda
 não possuem tabelas e devem ser adicionados em migrations próprias quando as

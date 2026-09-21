@@ -2,10 +2,11 @@
 
 ## Visão geral
 
-**Status:** corrigido em 2026-09-08.
+**Status:** atualizado em 2026-09-09.
 
-O backend atende os fluxos de convite, incluindo a geração do código de acesso
-por profissionais, em [`backend/src/server.ts`](../../backend/src/server.ts).
+O backend atende os fluxos de convite — geração do código por profissionais,
+consumo pelo paciente, listagem de solicitações e aprovação — em
+[`backend/src/server.ts`](../../backend/src/server.ts).
 Ele agora escuta em IPv4 por padrão, permitindo que o Expo em um dispositivo
 físico acesse a API pelo endereço de rede local configurado em
 `EXPO_PUBLIC_API_URL`.
@@ -16,6 +17,17 @@ O servidor usa `HOST=0.0.0.0` quando a variável não é informada e a porta
 `PORT=3333` por padrão. A geração do convite é solicitada em
 `POST /v1/professional/invitations` e exige um bearer token de profissional
 ativo.
+
+As rotas exigem bearer token e validam perfil ativo:
+
+- `POST /v1/professional/invitations`: gera código de uso único com validade
+  de sete dias para profissional ativo;
+- `POST /v1/patient/invitations/consume`: consome o código e cria a associação
+  `pending` de forma atômica;
+- `GET /v1/professional/relationships/pending`: lista solicitações pendentes
+  do profissional autenticado;
+- `POST /v1/professional/relationships/:id/approve`: aprova somente uma
+  solicitação pendente pertencente ao profissional autenticado.
 
 Para desenvolvimento em celular, `frontend/.env` deve definir
 `EXPO_PUBLIC_API_URL` com o IPv4 local da máquina e a porta do backend, por

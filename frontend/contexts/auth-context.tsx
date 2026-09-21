@@ -1,11 +1,12 @@
+import * as Linking from 'expo-linking';
 import type { Session } from '@supabase/supabase-js';
-import { createContext, type PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, type PropsWithChildren, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { consumePatientInvite } from '@/lib/api';
 import { getSupabaseClient } from '@/lib/supabase';
 
 export type AppRole = 'patient' | 'professional';
-export type AccessState = 'loading' | 'signed-out' | 'patient-active' | 'patient-pending' | 'professional';
+export type AccessState = 'loading' | 'signed-out' | 'password-recovery' | 'patient-active' | 'patient-pending' | 'professional';
 
 type SignInInput = {
   email: string;
@@ -52,14 +53,32 @@ async function resolveAccess(session: Session): Promise<AccessState> {
   return 'patient-pending';
 }
 
+function recoveryParameters(url: string): URLSearchParams | null {
+  const fragment = url.split('#')[1];
+  const query = fragment ?? url.split('?')[1];
+  if (!query) return null;
+
+  const parameters = new URLSearchParams(query);
+  const isResetPasswordRoute = url.split(/[?#]/)[0].endsWith('reset-password');
+  return parameters.get('type') === 'recovery' || (isResetPasswordRoute && parameters.has('code'))
+    ? parameters
+    : null;
+}
+
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);
   const [accessState, setAccessState] = useState<AccessState>('loading');
+  const recoveryUserId = useRef<string | undefined>(undefined);
 
   const applySession = useCallback(async (nextSession: Session | null) => {
     setSession(nextSession);
     if (!nextSession) {
       setAccessState('signed-out');
+      return;
+    }
+
+    if (recoveryUserId.current === nextSession.user.id) {
+      setAccessState('password-recovery');
       return;
     }
 
@@ -77,14 +96,50 @@ export function AuthProvider({ children }: PropsWithChildren) {
     void supabase.auth.getSession().then(({ data }) => applySession(data.session));
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (event === 'SIGNED_OUT') {
+        recoveryUserId.current = undefined;
         setSession(null);
         setAccessState('signed-out');
+      } else if (event === 'PASSWORD_RECOVERY' && nextSession) {
+        recoveryUserId.current = nextSession.user.id;
+        setSession(nextSession);
+        setAccessState('password-recovery');
       } else if (event === 'TOKEN_REFRESHED') {
         setSession(nextSession);
       }
     });
     return () => data.subscription.unsubscribe();
   }, [applySession]);
+
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+
+    async function handleRecoveryUrl(url: string | null) {
+      if (!url) return;
+      const parameters = recoveryParameters(url);
+      if (!parameters) return;
+
+      const code = parameters.get('code');
+      const accessToken = parameters.get('access_token');
+      const refreshToken = parameters.get('refresh_token');
+      const result = code
+        ? await supabase.auth.exchangeCodeForSession(code)
+        : accessToken && refreshToken
+          ? await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+          : null;
+
+      if (result?.data.session && !result.error) {
+        recoveryUserId.current = result.data.session.user.id;
+        setSession(result.data.session);
+        setAccessState('password-recovery');
+      }
+    }
+
+    void Linking.getInitialURL().then(handleRecoveryUrl);
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      void handleRecoveryUrl(url);
+    });
+    return () => subscription.remove();
+  }, []);
 
   const signIn = useCallback(async ({ email, password, role, inviteCode }: SignInInput) => {
     const supabase = getSupabaseClient();
@@ -128,6 +183,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const signOut = useCallback(async () => {
     await getSupabaseClient().auth.signOut();
+    recoveryUserId.current = undefined;
     setSession(null);
     setAccessState('signed-out');
   }, []);
