@@ -12,7 +12,7 @@ import { ProfileCard } from '@/components/professional/profile-card';
 import { ProfessionalBrand, ProfessionalScreen } from '@/components/professional/professional-screen';
 import { useAuth } from '@/contexts/auth-context';
 import { useProfessionalProfile } from '@/hooks/use-professional-profile';
-import { approvePendingRelationship, generateProfessionalInvite, listPendingRelationships, type PendingRelationship, type ProfessionalInvitation } from '@/lib/api';
+import { approvePendingRelationship, generateProfessionalInvite, listPendingRelationships, rejectPendingRelationship, type PendingRelationship, type ProfessionalInvitation } from '@/lib/api';
 import { createDashboardDemo, dashboardScenario } from '@/lib/professional-dashboard';
 
 export default function ProfessionalHomeScreen() {
@@ -22,7 +22,7 @@ export default function ProfessionalHomeScreen() {
   const [invitation, setInvitation] = useState<ProfessionalInvitation | null>(null);
   const [pendingRelationships, setPendingRelationships] = useState<PendingRelationship[]>([]);
   const [loadingInvite, setLoadingInvite] = useState(false);
-  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [decidingId, setDecidingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState('');
   const [copied, setCopied] = useState(false);
   const [demoRecovered, setDemoRecovered] = useState(false);
@@ -71,8 +71,8 @@ export default function ProfessionalHomeScreen() {
   }
 
   async function handleApprove(relationshipId: string) {
-    if (!session?.access_token || approvingId) return;
-    setApprovingId(relationshipId);
+    if (!session?.access_token || decidingId) return;
+    setDecidingId(relationshipId);
     setFeedback('');
     try {
       await approvePendingRelationship(session.access_token, relationshipId);
@@ -80,7 +80,21 @@ export default function ProfessionalHomeScreen() {
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Não foi possível aprovar a solicitação.');
     } finally {
-      setApprovingId(null);
+      setDecidingId(null);
+    }
+  }
+
+  async function handleReject(relationshipId: string) {
+    if (!session?.access_token || decidingId) return;
+    setDecidingId(relationshipId);
+    setFeedback('');
+    try {
+      await rejectPendingRelationship(session.access_token, relationshipId);
+      await loadPendingRelationships(session.access_token);
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : 'Não foi possível recusar a solicitação.');
+    } finally {
+      setDecidingId(null);
     }
   }
 
@@ -118,10 +132,18 @@ export default function ProfessionalHomeScreen() {
           </YStack>
         ) : null}
         {pendingRelationships.length ? pendingRelationships.map((relationship) => (
-          <XStack key={relationship.id} items="center" justify="space-between" gap="$3" flexWrap="wrap">
-            <Paragraph color="$muted" flex={1}>Solicitação recebida em {new Date(relationship.requestedAt).toLocaleString('pt-BR')}.</Paragraph>
-            <Button disabled={approvingId !== null} onPress={() => handleApprove(relationship.id)}>{approvingId === relationship.id ? 'Aprovando...' : 'Aprovar'}</Button>
-          </XStack>
+          <YStack key={relationship.id} gap="$2" p="$3" bg="$backgroundHover" borderWidth={1} borderColor="$borderColor" rounded="$control">
+            <SizableText color="$color" fontWeight="700">{relationship.patientName}</SizableText>
+            <Paragraph color="$muted" size="$2">Solicitação recebida em {new Date(relationship.requestedAt).toLocaleString('pt-BR')}.</Paragraph>
+            <XStack gap="$2" flexWrap="wrap">
+              <BrandButton flex={1} minW={130} disabled={decidingId !== null} onPress={() => handleApprove(relationship.id)}>
+                {decidingId === relationship.id ? 'Salvando...' : 'Aprovar'}
+              </BrandButton>
+              <Button flex={1} minW={130} minH="$touchTarget" bg="$declinedBackground" color="$declinedColor" borderWidth={1} borderColor="$declinedColor" disabled={decidingId !== null} onPress={() => handleReject(relationship.id)}>
+                {decidingId === relationship.id ? 'Salvando...' : 'Recusar'}
+              </Button>
+            </XStack>
+          </YStack>
         )) : <Paragraph color="$muted" size="$2">Nenhuma solicitação pendente.</Paragraph>}
         {feedback ? <Paragraph color="$red10" role="alert">{feedback}</Paragraph> : null}
       </AppCard>

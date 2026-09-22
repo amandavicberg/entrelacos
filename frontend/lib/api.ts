@@ -29,6 +29,7 @@ export type ProfessionalInvitation = {
 
 export type PendingRelationship = {
   id: string;
+  patientName: string;
   requestedAt: string;
 };
 
@@ -74,6 +75,15 @@ export async function approvePendingRelationship(accessToken: string, relationsh
   });
   const payload = (await response.json().catch(() => null)) as { error?: string } | null;
   if (!response.ok) throw new Error(payload?.error ?? 'Não foi possível aprovar a solicitação.');
+}
+
+export async function rejectPendingRelationship(accessToken: string, relationshipId: string): Promise<void> {
+  const response = await fetchApi(`${getApiUrl()}/v1/professional/relationships/${relationshipId}/reject`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+  if (!response.ok) throw new Error(payload?.error ?? 'Não foi possível recusar a solicitação.');
 }
 
 export async function consumePatientInvite(code: string, accessToken: string): Promise<void> {

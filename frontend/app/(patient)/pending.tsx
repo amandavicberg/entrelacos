@@ -7,6 +7,7 @@ import { BrandButton } from '@/components/brand-button';
 import { useAuth } from '@/contexts/auth-context';
 
 const patientPath = '/(patient)' as RelativePathString;
+const patientConnectPath = '/(patient)/connect' as RelativePathString;
 
 export default function PatientPendingScreen() {
   const { accessState, refreshAccess, signOut } = useAuth();
@@ -14,6 +15,7 @@ export default function PatientPendingScreen() {
   const tokens = getTokens();
 
   if (accessState === 'patient-active') return <Redirect href={patientPath} />;
+  if (accessState === 'patient-unassociated') return <Redirect href={patientConnectPath} />;
 
   return (
     <AuthScreen

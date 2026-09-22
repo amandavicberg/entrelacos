@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect } from 'expo-router';
+import { Redirect, type RelativePathString } from 'expo-router';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView } from 'react-native';
 import {
@@ -48,6 +48,7 @@ export default function PatientHomeScreen() {
   const [saved, setSaved] = useState(false);
 
   if (accessState === 'patient-pending') return <Redirect href="/(patient)/pending" />;
+  if (accessState === 'patient-unassociated') return <Redirect href={'/(patient)/connect' as RelativePathString} />;
   if (accessState !== 'patient-active') return <FeedbackState status="loading" title="Validando acesso" />;
 
   function saveDailyCheckIn() {

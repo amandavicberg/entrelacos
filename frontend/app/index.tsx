@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/auth-context';
 const loginPath = '/login' as RelativePathString;
 const patientPath = '/(patient)' as RelativePathString;
 const patientPendingPath = '/(patient)/pending' as RelativePathString;
+const patientConnectPath = '/(patient)/connect' as RelativePathString;
 const professionalPath = '/(professional)' as RelativePathString;
 
 export default function WelcomeScreen() {
@@ -20,6 +21,7 @@ export default function WelcomeScreen() {
   if (accessState === 'professional') return <Redirect href={professionalPath} />;
   if (accessState === 'patient-active') return <Redirect href={patientPath} />;
   if (accessState === 'patient-pending') return <Redirect href={patientPendingPath} />;
+  if (accessState === 'patient-unassociated') return <Redirect href={patientConnectPath} />;
 
   return (
     <AppScreen>

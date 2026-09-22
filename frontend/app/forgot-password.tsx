@@ -13,6 +13,7 @@ import { requestPasswordReset } from '@/lib/registration';
 const loginPath = '/login' as RelativePathString;
 const patientPath = '/(patient)' as RelativePathString;
 const patientPendingPath = '/(patient)/pending' as RelativePathString;
+const patientConnectPath = '/(patient)/connect' as RelativePathString;
 const professionalPath = '/(professional)' as RelativePathString;
 
 export default function ForgotPasswordScreen() {
@@ -28,6 +29,7 @@ export default function ForgotPasswordScreen() {
   if (accessState === 'professional') return <Redirect href={professionalPath} />;
   if (accessState === 'patient-active') return <Redirect href={patientPath} />;
   if (accessState === 'patient-pending') return <Redirect href={patientPendingPath} />;
+  if (accessState === 'patient-unassociated') return <Redirect href={patientConnectPath} />;
 
   async function submit() {
     const normalizedEmail = email.trim().toLowerCase();

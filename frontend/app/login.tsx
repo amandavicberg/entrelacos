@@ -15,6 +15,7 @@ import { type AppRole, useAuth } from '@/contexts/auth-context';
 const forgotPasswordPath = '/forgot-password' as RelativePathString;
 const patientPath = '/(patient)' as RelativePathString;
 const patientPendingPath = '/(patient)/pending' as RelativePathString;
+const patientConnectPath = '/(patient)/connect' as RelativePathString;
 const professionalPath = '/(professional)' as RelativePathString;
 const registrationPath = '/cadastro' as RelativePathString;
 type Errors = Partial<Record<'email' | 'password' | 'inviteCode', string>>;
@@ -53,6 +54,7 @@ function LoginContent() {
   if (accessState === 'professional') return <Redirect href={professionalPath} />;
   if (accessState === 'patient-active') return <Redirect href={patientPath} />;
   if (accessState === 'patient-pending') return <Redirect href={patientPendingPath} />;
+  if (accessState === 'patient-unassociated') return <Redirect href={patientConnectPath} />;
 
   function selectRole(nextRole: AppRole) {
     setRole(nextRole);

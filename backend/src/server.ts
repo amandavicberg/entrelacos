@@ -204,16 +204,36 @@ async function listPendingRelationships(
     throw new HttpError(500, "Não foi possível carregar as solicitações.");
   }
 
+  const patientIds = [...new Set((data ?? []).map((relationship) => relationship.patient_id))];
+  const { data: patients, error: patientsError } = patientIds.length
+    ? await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", patientIds)
+      .eq("role", "patient")
+      .eq("status", 0)
+    : { data: [], error: null };
+
+  if (patientsError) {
+    console.error("Falha ao identificar solicitações de paciente", { errorCode: patientsError.code });
+    throw new HttpError(500, "Não foi possível carregar as solicitações.");
+  }
+
+  const patientNames = new Map((patients ?? []).map((patient) => [patient.id, patient.full_name]));
   sendJson(response, 200, {
-    relationships: (data ?? []).map((relationship) => ({
-      id: relationship.id,
-      requestedAt: relationship.requested_at,
-    })),
+    relationships: (data ?? []).flatMap((relationship) => {
+      const patientName = patientNames.get(relationship.patient_id);
+      return patientName ? [{
+        id: relationship.id,
+        patientName,
+        requestedAt: relationship.requested_at,
+      }] : [];
+    }),
   });
 }
 
 function getRelationshipId(request: IncomingMessage): string {
-  const match = /^\/v1\/professional\/relationships\/([0-9a-f-]{36})\/approve$/i.exec(request.url ?? "");
+  const match = /^\/v1\/professional\/relationships\/([0-9a-f-]{36})\/(?:approve|reject)$/i.exec(request.url ?? "");
   if (!match) throw new HttpError(400, "Solicitação inválida.");
   return match[1];
 }
@@ -249,6 +269,33 @@ async function approveRelationship(
   });
 }
 
+async function rejectRelationship(
+  request: IncomingMessage,
+  response: ServerResponse,
+): Promise<void> {
+  const professionalId = await authenticateProfessional(request);
+  const relationshipId = getRelationshipId(request);
+  const { data, error } = await supabase
+    .from("patient_professional_relationships")
+    .update({ relationship_status: "rejected" })
+    .eq("id", relationshipId)
+    .eq("professional_id", professionalId)
+    .eq("relationship_status", "pending")
+    .eq("status", 0)
+    .select("id, relationship_status")
+    .maybeSingle();
+
+  if (error) {
+    console.error("Falha ao recusar solicitação de paciente", { errorCode: error.code });
+    throw new HttpError(500, "Não foi possível recusar a solicitação.");
+  }
+  if (!data) throw new HttpError(409, "A solicitação não está mais pendente.");
+
+  sendJson(response, 200, {
+    relationship: { id: data.id, status: data.relationship_status },
+  });
+}
+
 const server = createServer(async (request, response) => {
   if (request.method === "OPTIONS") {
     sendJson(response, 204, {});
@@ -270,6 +317,10 @@ const server = createServer(async (request, response) => {
     }
     if (request.method === "POST" && /^\/v1\/professional\/relationships\/[0-9a-f-]{36}\/approve$/i.test(request.url ?? "")) {
       await approveRelationship(request, response);
+      return;
+    }
+    if (request.method === "POST" && /^\/v1\/professional\/relationships\/[0-9a-f-]{36}\/reject$/i.test(request.url ?? "")) {
+      await rejectRelationship(request, response);
       return;
     }
     sendJson(response, 404, { error: "Rota não encontrada." });

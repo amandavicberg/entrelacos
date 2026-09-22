@@ -50,6 +50,7 @@ export default function ProfessionalLayout() {
   if (accessState === 'signed-out') return <Redirect href={'/login' as RelativePathString} />;
   if (accessState === 'patient-active') return <Redirect href="/(patient)" />;
   if (accessState === 'patient-pending') return <Redirect href="/(patient)/pending" />;
+  if (accessState === 'patient-unassociated') return <Redirect href={'/(patient)/connect' as RelativePathString} />;
   if (accessState !== 'professional') return <Redirect href="/login" />;
   return <Theme name={scheme === 'dark' ? 'dark_professional' : 'light_professional'}><ProfessionalTabs /></Theme>;
 }

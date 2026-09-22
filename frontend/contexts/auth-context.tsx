@@ -6,7 +6,7 @@ import { consumePatientInvite } from '@/lib/api';
 import { getSupabaseClient } from '@/lib/supabase';
 
 export type AppRole = 'patient' | 'professional';
-export type AccessState = 'loading' | 'signed-out' | 'password-recovery' | 'patient-active' | 'patient-pending' | 'professional';
+export type AccessState = 'loading' | 'signed-out' | 'password-recovery' | 'patient-unassociated' | 'patient-active' | 'patient-pending' | 'professional';
 
 type SignInInput = {
   email: string;
@@ -50,7 +50,10 @@ async function resolveAccess(session: Session): Promise<AccessState> {
   if (relationships?.some(({ relationship_status }) => relationship_status === 'active')) {
     return 'patient-active';
   }
-  return 'patient-pending';
+  if (relationships?.some(({ relationship_status }) => relationship_status === 'pending')) {
+    return 'patient-pending';
+  }
+  return 'patient-unassociated';
 }
 
 function recoveryParameters(url: string): URLSearchParams | null {
@@ -158,7 +161,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (profile.role !== role) throw new Error('O tipo de acesso não corresponde ao seu cadastro.');
 
       let nextAccess = await resolveAccess(data.session);
-      if (role === 'patient' && nextAccess === 'patient-pending') {
+      if (role === 'patient' && nextAccess === 'patient-unassociated') {
         const { count, error: countError } = await supabase
           .from('patient_professional_relationships')
           .select('id', { count: 'exact', head: true })

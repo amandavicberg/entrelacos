@@ -13,6 +13,7 @@ import { registerUser, resendConfirmationEmail } from '@/lib/registration';
 const loginPath = '/login' as RelativePathString;
 const patientPath = '/(patient)' as RelativePathString;
 const patientPendingPath = '/(patient)/pending' as RelativePathString;
+const patientConnectPath = '/(patient)/connect' as RelativePathString;
 const professionalPath = '/(professional)' as RelativePathString;
 
 type FormValues = {
@@ -141,6 +142,7 @@ export default function RegistrationScreen() {
   if (accessState === 'professional') return <Redirect href={professionalPath} />;
   if (accessState === 'patient-active') return <Redirect href={patientPath} />;
   if (accessState === 'patient-pending') return <Redirect href={patientPendingPath} />;
+  if (accessState === 'patient-unassociated') return <Redirect href={patientConnectPath} />;
 
   function updateValue(field: keyof FormValues, value: string) {
     setValues((current) => ({ ...current, [field]: value }));
