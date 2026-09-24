@@ -55,9 +55,9 @@ Autenticação não equivale a autorização. Toda leitura e escrita deve respei
 
 ## 3. Escopo do MVP
 
-O MVP prioriza cadastro e autenticação; separação de telas e permissões por perfil; associação paciente-profissional; anotações do paciente; observações do profissional; histórico cronológico; e compartilhamento organizado de orientações e materiais de apoio.
+O MVP prioriza cadastro e autenticação; separação de telas e permissões por perfil; associação paciente-profissional; anotações do paciente; observações do profissional; histórico cronológico; e compartilhamento organizado de orientações e materiais de apoio. Como extensão aprovada, o paciente pode enviar PDFs clínicos privados (exames, laudos e documentos de apoio) para o profissional do vínculo ativo e usar um mural assíncrono de recados para a próxima sessão. Esses recursos não constituem chat, prontuário regulado, diagnóstico, prescrição ou atendimento de urgência.
 
-Notificações, anexos/documentos, relatórios, confirmação de presença, métricas de evolução e recursos complementares são extensões futuras, salvo decisão explícita. Toda funcionalidade deve servir ao acompanhamento sem transformar o produto em WhatsApp ou prontuário eletrônico completo.
+Notificações, outros formatos de anexo além do PDF privado aprovado, relatórios, confirmação de presença, métricas de evolução e recursos complementares são extensões futuras, salvo decisão explícita. Toda funcionalidade deve servir ao acompanhamento sem transformar o produto em WhatsApp ou prontuário eletrônico completo.
 
 ## 4. Arquitetura
 

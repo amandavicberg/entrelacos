@@ -123,6 +123,10 @@ export type FollowUpMaterial = { id: string; title: string; description: string 
 export type TimelineItem = { id: string; type: 'observation' | 'appointment' | 'material'; at: string; label: string; content?: string };
 export type MaterialUsage = { count: number; sizeBytes: number; quotaBytes: number };
 export type PatientRelationship = { relationshipId: string; professionalName: string; approvedAt: string | null };
+export type PatientDocument = { id: string; relationshipId: string; title: string; kind: 'exam' | 'report' | 'diagnosis' | 'other'; mimeType: string; sizeBytes: number; createdAt: string };
+export type PatientMessage = { id: string; relationshipId: string; content: string; createdAt: string };
+export type PatientCheckIn = { id: string; relationshipId: string; feeling: 'calm' | 'happy' | 'tired' | 'anxious' | 'sad' | 'other'; note: string | null; createdAt: string };
+export type PatientDocumentUpload = { documentId: string; storagePath: string; signedUrl: string; token: string; mimeType: string; sizeBytes: number };
 
 export async function listProfessionalPatients(accessToken: string): Promise<FollowUpPatient[]> {
   return (await requestJson<{ patients: FollowUpPatient[] }>('/v1/professional/patients?limit=100', accessToken)).patients;
@@ -214,5 +218,56 @@ export async function listPatientObservations(accessToken: string): Promise<Foll
 
 export async function listPatientRelationships(accessToken: string): Promise<PatientRelationship[]> {
   return (await requestJson<{ relationships: PatientRelationship[] }>('/v1/patient/relationships', accessToken)).relationships;
+}
+
+export async function listPatientDocuments(accessToken: string, relationshipId?: string): Promise<PatientDocument[]> {
+  const path = relationshipId ? `/v1/professional/patients/${relationshipId}/documents` : '/v1/patient/documents';
+  return (await requestJson<{ documents: PatientDocument[] }>(path, accessToken)).documents;
+}
+
+export async function preparePatientDocumentUpload(accessToken: string, input: { relationshipId: string; fileName: string; mimeType: string; sizeBytes: number }): Promise<PatientDocumentUpload> {
+  return (await requestJson<{ upload: PatientDocumentUpload }>('/v1/patient/documents/upload-url', accessToken, { method: 'POST', body: JSON.stringify(input) })).upload;
+}
+
+export async function confirmPatientDocumentUpload(accessToken: string, input: { relationshipId: string; documentId: string; storagePath: string; fileName: string; mimeType: string; sizeBytes: number; title: string; kind: PatientDocument['kind'] }): Promise<void> {
+  await requestJson('/v1/patient/documents', accessToken, { method: 'POST', body: JSON.stringify(input) });
+}
+
+export async function uploadPatientDocument(storagePath: string, token: string, fileUri: string, mimeType: string): Promise<void> {
+  const response = await fetch(fileUri);
+  if (!response.ok) throw new Error('Não foi possível ler o arquivo selecionado.');
+  const { error } = await getSupabaseClient().storage.from('patient-documents').uploadToSignedUrl(storagePath, token, await response.arrayBuffer(), { contentType: mimeType });
+  if (error) throw new Error('Não foi possível enviar o documento.');
+}
+
+export async function getPatientDocumentUrl(accessToken: string, documentId: string, patient = true): Promise<string> {
+  const path = patient ? `/v1/patient/documents/${documentId}/url` : `/v1/professional/documents/${documentId}/url`;
+  return (await requestJson<{ url: string }>(path, accessToken)).url;
+}
+
+export async function listPatientMessages(accessToken: string, relationshipId?: string): Promise<PatientMessage[]> {
+  const path = relationshipId ? `/v1/professional/patients/${relationshipId}/messages` : '/v1/patient/messages';
+  return (await requestJson<{ messages: PatientMessage[] }>(path, accessToken)).messages;
+}
+
+export async function createPatientMessage(accessToken: string, relationshipId: string, content: string): Promise<void> {
+  await requestJson('/v1/patient/messages', accessToken, { method: 'POST', body: JSON.stringify({ relationshipId, content }) });
+}
+
+export async function listPatientCheckIns(accessToken: string, relationshipId?: string): Promise<PatientCheckIn[]> {
+  const path = relationshipId ? `/v1/professional/patients/${relationshipId}/check-ins` : '/v1/patient/check-ins';
+  return (await requestJson<{ checkIns: PatientCheckIn[] }>(path, accessToken)).checkIns;
+}
+
+export async function createPatientCheckIn(accessToken: string, relationshipId: string, feeling: PatientCheckIn['feeling'], note?: string): Promise<void> {
+  await requestJson('/v1/patient/check-ins', accessToken, { method: 'POST', body: JSON.stringify({ relationshipId, feeling, note }) });
+}
+
+export async function getBirthdayMessage(accessToken: string): Promise<{ isBirthday: boolean; message: string | null }> {
+  return requestJson('/v1/patient/birthday-message', accessToken);
+}
+
+export async function saveBirthdayMessage(accessToken: string, relationshipId: string, content: string): Promise<void> {
+  await requestJson(`/v1/professional/patients/${relationshipId}/birthday-message`, accessToken, { method: 'PUT', body: JSON.stringify({ content }) });
 }
 import { getSupabaseClient } from '@/lib/supabase';

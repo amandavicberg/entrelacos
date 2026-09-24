@@ -24,6 +24,7 @@ import {
 } from './follow-up.js';
 import { sendJson } from './http.js';
 import { consumeInvite, decideRelationship, generateInvite, listPendingRelationships } from './invitations.js';
+import { confirmPatientDocumentUpload, createPatientCheckIn, createPatientMessage, getBirthdayMessage, getPatientDocumentUrl, listPatientCheckIns, listPatientDocuments, listPatientMessages, preparePatientDocumentUpload, upsertBirthdayMessage } from './patient-space.js';
 
 const port = Number(process.env.PORT ?? 3333);
 const host = process.env.HOST ?? '0.0.0.0';
@@ -59,6 +60,16 @@ const server = createServer(async (request, response) => {
     if (match && request.method === 'POST') return await cancelAppointment(request, response, match[1], match[2]);
     match = new RegExp(`^/v1/professional/patients/${id}/timeline$`, 'i').exec(pathname);
     if (match && request.method === 'GET') return await listTimeline(request, response, match[1]);
+    match = new RegExp(`^/v1/professional/patients/${id}/documents$`, 'i').exec(pathname);
+    if (match && request.method === 'GET') return await listPatientDocuments(request, response, match[1]);
+    match = new RegExp(`^/v1/professional/patients/${id}/messages$`, 'i').exec(pathname);
+    if (match && request.method === 'GET') return await listPatientMessages(request, response, match[1]);
+    match = new RegExp(`^/v1/professional/patients/${id}/check-ins$`, 'i').exec(pathname);
+    if (match && request.method === 'GET') return await listPatientCheckIns(request, response, match[1]);
+    match = new RegExp(`^/v1/professional/patients/${id}/birthday-message$`, 'i').exec(pathname);
+    if (match && request.method === 'PUT') return await upsertBirthdayMessage(request, response, match[1]);
+    match = new RegExp(`^/v1/professional/documents/${id}/url$`, 'i').exec(pathname);
+    if (match && request.method === 'GET') return await getPatientDocumentUrl(request, response, match[1]);
 
     if (request.method === 'GET' && pathname === '/v1/professional/appointments') return await listAppointments(request, response);
     if (request.method === 'GET' && pathname === '/v1/professional/materials') return await listMaterials(request, response);
@@ -74,12 +85,22 @@ const server = createServer(async (request, response) => {
     if (request.method === 'GET' && pathname === '/v1/patient/relationships') return await listPatientRelationships(request, response);
     if (request.method === 'GET' && pathname === '/v1/patient/appointments') return await listAppointments(request, response);
     if (request.method === 'GET' && pathname === '/v1/patient/materials') return await listMaterials(request, response);
+    if (request.method === 'GET' && pathname === '/v1/patient/documents') return await listPatientDocuments(request, response);
+    if (request.method === 'POST' && pathname === '/v1/patient/documents/upload-url') return await preparePatientDocumentUpload(request, response);
+    if (request.method === 'POST' && pathname === '/v1/patient/documents') return await confirmPatientDocumentUpload(request, response);
+    if (request.method === 'GET' && pathname === '/v1/patient/messages') return await listPatientMessages(request, response);
+    if (request.method === 'POST' && pathname === '/v1/patient/messages') return await createPatientMessage(request, response);
+    if (request.method === 'GET' && pathname === '/v1/patient/check-ins') return await listPatientCheckIns(request, response);
+    if (request.method === 'POST' && pathname === '/v1/patient/check-ins') return await createPatientCheckIn(request, response);
+    if (request.method === 'GET' && pathname === '/v1/patient/birthday-message') return await getBirthdayMessage(request, response);
     match = new RegExp(`^/v1/patient/appointments/${id}/response$`, 'i').exec(pathname);
     if (match && request.method === 'POST') return await respondToAppointment(request, response, match[1]);
     match = new RegExp(`^/v1/patient/relationships/${id}/timeline$`, 'i').exec(pathname);
     if (match && request.method === 'GET') return await listTimeline(request, response, match[1]);
     match = new RegExp(`^/v1/patient/materials/${id}/url$`, 'i').exec(pathname);
     if (match && request.method === 'GET') return await getMaterialUrl(request, response, match[1]);
+    match = new RegExp(`^/v1/patient/documents/${id}/url$`, 'i').exec(pathname);
+    if (match && request.method === 'GET') return await getPatientDocumentUrl(request, response, match[1]);
 
     sendJson(response, 404, { error: 'Rota não encontrada.' });
   } catch (error) {
