@@ -1,46 +1,45 @@
 import * as Clipboard from 'expo-clipboard';
-import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { useWindowDimensions } from 'react-native';
+import { useEffect, useState } from 'react';
 import { Button, H1, Paragraph, SizableText, Spinner, XStack, YStack } from 'tamagui';
 
 import { AppCard } from '@/components/app-card';
 import { BrandButton } from '@/components/brand-button';
 import { FeedbackState } from '@/components/feedback-state';
-import { AppointmentsPanel, BirthdaysPanel, DashboardSkeleton, DemoNotice, QuickActions, SummaryCards } from '@/components/professional/dashboard-sections';
+import { QuickActions } from '@/components/professional/dashboard-sections';
 import { ProfileCard } from '@/components/professional/profile-card';
 import { ProfessionalBrand, ProfessionalScreen } from '@/components/professional/professional-screen';
 import { useAuth } from '@/contexts/auth-context';
 import { useProfessionalProfile } from '@/hooks/use-professional-profile';
-import { approvePendingRelationship, generateProfessionalInvite, listPendingRelationships, rejectPendingRelationship, type PendingRelationship, type ProfessionalInvitation } from '@/lib/api';
-import { createDashboardDemo, dashboardScenario } from '@/lib/professional-dashboard';
+import { approvePendingRelationship, generateProfessionalInvite, listAppointments, listPendingRelationships, listProfessionalPatients, rejectPendingRelationship, type FollowUpAppointment, type FollowUpPatient, type PendingRelationship, type ProfessionalInvitation } from '@/lib/api';
 
 export default function ProfessionalHomeScreen() {
   const { session, signOut } = useAuth();
   const profile = useProfessionalProfile();
-  const { scenario } = useLocalSearchParams<{ scenario?: string }>();
   const [invitation, setInvitation] = useState<ProfessionalInvitation | null>(null);
   const [pendingRelationships, setPendingRelationships] = useState<PendingRelationship[]>([]);
   const [loadingInvite, setLoadingInvite] = useState(false);
   const [decidingId, setDecidingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState('');
   const [copied, setCopied] = useState(false);
-  const [demoRecovered, setDemoRecovered] = useState(false);
-  const [baseDate] = useState(() => new Date());
+  const [patients, setPatients] = useState<FollowUpPatient[]>([]);
+  const [appointments, setAppointments] = useState<FollowUpAppointment[]>([]);
+  const [summaryLoading, setSummaryLoading] = useState(true);
+  const [summaryError, setSummaryError] = useState('');
   const [leaving, setLeaving] = useState(false);
   const [exitError, setExitError] = useState(false);
-  const { width, fontScale } = useWindowDimensions();
-  const demo = useMemo(() => createDashboardDemo(baseDate), [baseDate]);
-  const selectedScenario = dashboardScenario(scenario ?? process.env.EXPO_PUBLIC_PROFESSIONAL_SCENARIO, __DEV__);
-  const demoState = selectedScenario === 'error' && demoRecovered ? 'ready' : selectedScenario;
-  const patients = demoState === 'empty' ? [] : demo.patients;
-  const appointments = demoState === 'empty' ? [] : demo.appointments;
-  const wide = width >= 850 && fontScale <= 1.3;
 
   useEffect(() => {
     if (!session?.access_token) return;
     void loadPendingRelationships(session.access_token);
+    void loadSummary(session.access_token);
   }, [session?.access_token]);
+
+  async function loadSummary(accessToken: string) {
+    setSummaryLoading(true); setSummaryError('');
+    try { const [patientData, appointmentData] = await Promise.all([listProfessionalPatients(accessToken), listAppointments(accessToken)]); setPatients(patientData); setAppointments(appointmentData); }
+    catch (error) { setSummaryError(error instanceof Error ? error.message : 'Não foi possível carregar o resumo.'); }
+    finally { setSummaryLoading(false); }
+  }
 
   async function loadPendingRelationships(accessToken: string) {
     try {
@@ -77,6 +76,7 @@ export default function ProfessionalHomeScreen() {
     try {
       await approvePendingRelationship(session.access_token, relationshipId);
       await loadPendingRelationships(session.access_token);
+      await loadSummary(session.access_token);
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Não foi possível aprovar a solicitação.');
     } finally {
@@ -147,23 +147,11 @@ export default function ProfessionalHomeScreen() {
         )) : <Paragraph color="$muted" size="$2">Nenhuma solicitação pendente.</Paragraph>}
         {feedback ? <Paragraph color="$red10" role="alert">{feedback}</Paragraph> : null}
       </AppCard>
-      <DemoNotice />
-      {demoState === 'loading' ? <DashboardSkeleton /> : demoState === 'error' ? (
-        <YStack>
-          <FeedbackState status="error" title="Não foi possível carregar o resumo" description="Este é um cenário de erro demonstrativo para validação visual." />
-          <Button minH={44} height="auto" py="$3" bg="$soft" color="$brand" onPress={() => setDemoRecovered(true)}>Recarregar demonstração</Button>
-        </YStack>
-      ) : <>
-        <SummaryCards patients={patients} appointments={appointments} />
-        {patients.length === 0 ? <FeedbackState status="empty" title="Seu acompanhamento começa aqui" description="Seus pacientes aparecerão aqui quando estiverem vinculados a você." /> : null}
-      </>}
+      {summaryLoading ? <FeedbackState status="loading" title="Carregando resumo" /> : null}
+      {!summaryLoading && summaryError ? <YStack><FeedbackState status="error" title="Não foi possível carregar o resumo" description={summaryError} /><Button minH="$touchTarget" onPress={() => session?.access_token && loadSummary(session.access_token)}>Tentar novamente</Button></YStack> : null}
+      {!summaryLoading && !summaryError ? <XStack gap="$3" flexWrap="wrap"><AppCard flex={1} minW={150} title="Pacientes ativos" background="$surface"><SizableText color="$brand" fontFamily="$heading" size="$8">{patients.length}</SizableText></AppCard><AppCard flex={1} minW={150} title="Próximas consultas" background="$surface"><SizableText color="$brand" fontFamily="$heading" size="$8">{appointments.filter((item) => item.state === 'scheduled' && Date.parse(item.startsAt) >= Date.now()).length}</SizableText></AppCard><AppCard flex={1} minW={150} title="Aguardando confirmação" background="$surface"><SizableText color="$brand" fontFamily="$heading" size="$8">{appointments.filter((item) => item.state === 'scheduled' && item.patientResponse === 'pending').length}</SizableText></AppCard></XStack> : null}
+      {!summaryLoading && !summaryError && patients.length === 0 ? <FeedbackState status="empty" title="Seu acompanhamento começa aqui" description="Seus pacientes aparecerão aqui quando estiverem vinculados a você." /> : null}
       <QuickActions />
-      {demoState === 'ready' || demoState === 'empty' ? (
-        <XStack gap="$5" flexDirection={wide ? 'row' : 'column'} items="stretch">
-          <YStack flex={wide ? 1.2 : undefined} minW={0}><AppointmentsPanel patients={patients} appointments={appointments} baseDate={baseDate} /></YStack>
-          <YStack flex={wide ? 1 : undefined} minW={0}><BirthdaysPanel patients={patients} baseDate={baseDate} /></YStack>
-        </XStack>
-      ) : null}
     </ProfessionalScreen>
   );
 }

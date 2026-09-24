@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect, type RelativePathString } from 'expo-router';
+import { Redirect, type RelativePathString, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView } from 'react-native';
 import {
@@ -30,17 +30,20 @@ const feelings = [
 ];
 
 const menuItems = [
-  { label: 'Minha história', icon: 'book-outline' as const },
+  { label: 'Minha agenda', icon: 'calendar-outline' as const, href: '/(patient)/agenda' as RelativePathString },
+  { label: 'Orientações compartilhadas', icon: 'reader-outline' as const, href: '/(patient)/observations' as RelativePathString },
+  { label: 'Meu histórico', icon: 'time-outline' as const, href: '/(patient)/history' as RelativePathString },
+  { label: 'Materiais exclusivos', icon: 'play-circle-outline' as const, href: '/(patient)/materials' as RelativePathString },
   { label: 'Aprendizados', icon: 'sparkles-outline' as const },
   { label: 'Documentos e exames', icon: 'document-text-outline' as const },
   { label: 'Ferramentas de apoio', icon: 'heart-outline' as const },
-  { label: 'Materiais exclusivos', icon: 'play-circle-outline' as const },
   { label: 'Mensagem para minha profissional', icon: 'chatbubble-ellipses-outline' as const },
 ];
 
 export default function PatientHomeScreen() {
   const { accessState, signOut } = useAuth();
   const theme = useTheme();
+  const router = useRouter();
   const [menuVisible, setMenuVisible] = useState(false);
   const [selectedFeeling, setSelectedFeeling] = useState<string | null>(null);
   const [dailyNote, setDailyNote] = useState('');
@@ -171,11 +174,11 @@ export default function PatientHomeScreen() {
             </XStack>
             <XStack gap="$3" flexWrap="wrap">
               {menuItems.slice(0, 3).map((item) => (
-                <Card key={item.label} flex={1} minW={180} p="$4" borderWidth={1} borderColor="$borderColor" bg="$background">
+                <Card key={item.label} flex={1} minW={180} p="$4" borderWidth={1} borderColor="$borderColor" bg="$background" pressStyle={{ opacity: 0.82 }} onPress={() => item.href && router.push(item.href)} accessibilityRole="button" accessibilityLabel={`Abrir ${item.label}`}>
                   <YStack gap="$3">
                     <Ionicons name={item.icon} size={24} color={theme.brand.val} />
                     <SizableText color="$color" fontWeight="600">{item.label}</SizableText>
-                    <Paragraph color="$muted" size="$2">Disponível em breve</Paragraph>
+                    <Paragraph color="$muted" size="$2">Abrir</Paragraph>
                   </YStack>
                 </Card>
               ))}
@@ -224,12 +227,12 @@ export default function PatientHomeScreen() {
                     size="$5"
                     bg="$background"
                     color="$color"
-                    disabled
-                    opacity={0.7}
+                    disabled={!item.href}
+                    opacity={item.href ? 1 : 0.7}
                     borderWidth={1}
                     borderColor="$borderColor"
                     icon={<Ionicons name={item.icon} size={21} color={theme.color.val} />}
-                    onPress={() => setMenuVisible(false)}
+                    onPress={() => { setMenuVisible(false); if (item.href) router.push(item.href); }}
                   >
                     {item.label}
                   </Button>

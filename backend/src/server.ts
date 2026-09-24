@@ -1,336 +1,91 @@
-import "dotenv/config";
-import { createHash, randomBytes } from "node:crypto";
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import 'dotenv/config';
+import { createServer } from 'node:http';
 
-import { supabase } from "./config/supabase.js";
+import { HttpError } from './auth.js';
+import {
+  cancelAppointment,
+  confirmMaterialUpload,
+  correctObservation,
+  createAppointment,
+  createExternalMaterial,
+  createObservation,
+  getMaterialUrl,
+  getProfessionalPatient,
+  listAppointments,
+  listMaterials,
+  listObservations,
+  listPatientRelationships,
+  listProfessionalPatients,
+  listTimeline,
+  prepareMaterialUpload,
+  rescheduleAppointment,
+  respondToAppointment,
+  shareMaterial,
+} from './follow-up.js';
+import { sendJson } from './http.js';
+import { consumeInvite, decideRelationship, generateInvite, listPendingRelationships } from './invitations.js';
 
 const port = Number(process.env.PORT ?? 3333);
-const host = process.env.HOST ?? "0.0.0.0";
-const corsOrigin = process.env.CORS_ORIGIN ?? "http://localhost:8081";
-const maxBodyBytes = 2_048;
-
-type InviteBody = { code?: unknown };
-
-const inviteLifetimeMs = 7 * 24 * 60 * 60 * 1000;
-
-class HttpError extends Error {
-  constructor(
-    public readonly status: number,
-    public readonly publicMessage: string,
-  ) {
-    super(publicMessage);
-  }
-}
-
-function sendJson(response: ServerResponse, status: number, body: object): void {
-  response.writeHead(status, {
-    "Access-Control-Allow-Headers": "Authorization, Content-Type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Origin": corsOrigin,
-    "Content-Type": "application/json; charset=utf-8",
-    "X-Content-Type-Options": "nosniff",
-  });
-  response.end(status === 204 ? undefined : JSON.stringify(body));
-}
-
-async function readJson(request: IncomingMessage): Promise<InviteBody> {
-  const chunks: Buffer[] = [];
-  let size = 0;
-
-  for await (const chunk of request) {
-    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-    size += buffer.length;
-    if (size > maxBodyBytes) throw new HttpError(413, "Requisição muito grande.");
-    chunks.push(buffer);
-  }
-
-  try {
-    return JSON.parse(Buffer.concat(chunks).toString("utf8")) as InviteBody;
-  } catch {
-    throw new HttpError(400, "Corpo da requisição inválido.");
-  }
-}
-
-function getBearerToken(request: IncomingMessage): string {
-  const authorization = request.headers.authorization;
-  if (!authorization?.startsWith("Bearer ")) {
-    throw new HttpError(401, "Sessão inválida ou expirada.");
-  }
-  return authorization.slice("Bearer ".length).trim();
-}
-
-async function consumeInvite(request: IncomingMessage, response: ServerResponse): Promise<void> {
-  const token = getBearerToken(request);
-  const { data: authData, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !authData.user) throw new HttpError(401, "Sessão inválida ou expirada.");
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("role, status")
-    .eq("id", authData.user.id)
-    .maybeSingle();
-
-  if (profileError || !profile || profile.role !== "patient" || profile.status !== 0) {
-    throw new HttpError(403, "Este usuário não pode utilizar um convite de paciente.");
-  }
-
-  const body = await readJson(request);
-  const code = typeof body.code === "string" ? body.code.trim() : "";
-  if (code.length < 6 || code.length > 64) {
-    throw new HttpError(400, "Informe um código de convite válido.");
-  }
-
-  const { data, error } = await supabase.rpc("consume_patient_invite", {
-    p_code: code,
-    p_patient_id: authData.user.id,
-  });
-
-  if (error) {
-    console.error("Falha ao consumir convite", { errorCode: error.code });
-    throw new HttpError(400, "Código inválido, expirado ou já utilizado.");
-  }
-
-  sendJson(response, 201, { relationship: data });
-}
-
-function createInviteCode(): string {
-  return randomBytes(8).toString("hex").toUpperCase();
-}
-
-function digestInviteCode(code: string): string {
-  return createHash("sha256").update(code).digest("hex");
-}
-
-async function generateProfessionalInvite(
-  request: IncomingMessage,
-  response: ServerResponse,
-): Promise<void> {
-  const token = getBearerToken(request);
-  const { data: authData, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !authData.user) throw new HttpError(401, "Sessão inválida ou expirada.");
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("role, status")
-    .eq("id", authData.user.id)
-    .maybeSingle();
-
-  if (profileError || !profile || profile.role !== "professional" || profile.status !== 0) {
-    throw new HttpError(403, "Este usuário não pode gerar convites.");
-  }
-
-  const { data: professionalProfile, error: professionalProfileError } = await supabase
-    .from("professional_profiles")
-    .select("id, status")
-    .eq("id", authData.user.id)
-    .maybeSingle();
-
-  if (
-    professionalProfileError
-    || !professionalProfile
-    || professionalProfile.status !== 0
-  ) {
-    throw new HttpError(403, "Este profissional não está ativo.");
-  }
-
-  const code = createInviteCode();
-  const expiresAt = new Date(Date.now() + inviteLifetimeMs);
-  const { error: insertError } = await supabase.from("professional_invites").insert({
-    professional_id: authData.user.id,
-    code_digest: digestInviteCode(code),
-    expires_at: expiresAt.toISOString(),
-    status: 0,
-  });
-
-  if (insertError) {
-    console.error("Falha ao criar convite", { errorCode: insertError.code });
-    throw new HttpError(500, "Não foi possível gerar o convite.");
-  }
-
-  sendJson(response, 201, {
-    invitation: {
-      code,
-      expiresAt: expiresAt.toISOString(),
-    },
-  });
-}
-
-async function authenticateProfessional(request: IncomingMessage): Promise<string> {
-  const token = getBearerToken(request);
-  const { data: authData, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !authData.user) throw new HttpError(401, "Sessão inválida ou expirada.");
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("role, status")
-    .eq("id", authData.user.id)
-    .maybeSingle();
-  const { data: professionalProfile, error: professionalProfileError } = await supabase
-    .from("professional_profiles")
-    .select("status")
-    .eq("id", authData.user.id)
-    .maybeSingle();
-
-  if (
-    profileError
-    || professionalProfileError
-    || !profile
-    || !professionalProfile
-    || profile.role !== "professional"
-    || profile.status !== 0
-    || professionalProfile.status !== 0
-  ) {
-    throw new HttpError(403, "Este usuário não pode gerenciar convites.");
-  }
-
-  return authData.user.id;
-}
-
-async function listPendingRelationships(
-  request: IncomingMessage,
-  response: ServerResponse,
-): Promise<void> {
-  const professionalId = await authenticateProfessional(request);
-  const { data, error } = await supabase
-    .from("patient_professional_relationships")
-    .select("id, patient_id, requested_at")
-    .eq("professional_id", professionalId)
-    .eq("relationship_status", "pending")
-    .eq("status", 0)
-    .order("requested_at", { ascending: true });
-
-  if (error) {
-    console.error("Falha ao listar solicitações de paciente", { errorCode: error.code });
-    throw new HttpError(500, "Não foi possível carregar as solicitações.");
-  }
-
-  const patientIds = [...new Set((data ?? []).map((relationship) => relationship.patient_id))];
-  const { data: patients, error: patientsError } = patientIds.length
-    ? await supabase
-      .from("profiles")
-      .select("id, full_name")
-      .in("id", patientIds)
-      .eq("role", "patient")
-      .eq("status", 0)
-    : { data: [], error: null };
-
-  if (patientsError) {
-    console.error("Falha ao identificar solicitações de paciente", { errorCode: patientsError.code });
-    throw new HttpError(500, "Não foi possível carregar as solicitações.");
-  }
-
-  const patientNames = new Map((patients ?? []).map((patient) => [patient.id, patient.full_name]));
-  sendJson(response, 200, {
-    relationships: (data ?? []).flatMap((relationship) => {
-      const patientName = patientNames.get(relationship.patient_id);
-      return patientName ? [{
-        id: relationship.id,
-        patientName,
-        requestedAt: relationship.requested_at,
-      }] : [];
-    }),
-  });
-}
-
-function getRelationshipId(request: IncomingMessage): string {
-  const match = /^\/v1\/professional\/relationships\/([0-9a-f-]{36})\/(?:approve|reject)$/i.exec(request.url ?? "");
-  if (!match) throw new HttpError(400, "Solicitação inválida.");
-  return match[1];
-}
-
-async function approveRelationship(
-  request: IncomingMessage,
-  response: ServerResponse,
-): Promise<void> {
-  const professionalId = await authenticateProfessional(request);
-  const relationshipId = getRelationshipId(request);
-  const { data, error } = await supabase
-    .from("patient_professional_relationships")
-    .update({ relationship_status: "active", approved_at: new Date().toISOString() })
-    .eq("id", relationshipId)
-    .eq("professional_id", professionalId)
-    .eq("relationship_status", "pending")
-    .eq("status", 0)
-    .select("id, relationship_status, approved_at")
-    .maybeSingle();
-
-  if (error) {
-    console.error("Falha ao aprovar solicitação de paciente", { errorCode: error.code });
-    throw new HttpError(500, "Não foi possível aprovar a solicitação.");
-  }
-  if (!data) throw new HttpError(409, "A solicitação não está mais pendente.");
-
-  sendJson(response, 200, {
-    relationship: {
-      id: data.id,
-      status: data.relationship_status,
-      approvedAt: data.approved_at,
-    },
-  });
-}
-
-async function rejectRelationship(
-  request: IncomingMessage,
-  response: ServerResponse,
-): Promise<void> {
-  const professionalId = await authenticateProfessional(request);
-  const relationshipId = getRelationshipId(request);
-  const { data, error } = await supabase
-    .from("patient_professional_relationships")
-    .update({ relationship_status: "rejected" })
-    .eq("id", relationshipId)
-    .eq("professional_id", professionalId)
-    .eq("relationship_status", "pending")
-    .eq("status", 0)
-    .select("id, relationship_status")
-    .maybeSingle();
-
-  if (error) {
-    console.error("Falha ao recusar solicitação de paciente", { errorCode: error.code });
-    throw new HttpError(500, "Não foi possível recusar a solicitação.");
-  }
-  if (!data) throw new HttpError(409, "A solicitação não está mais pendente.");
-
-  sendJson(response, 200, {
-    relationship: { id: data.id, status: data.relationship_status },
-  });
-}
+const host = process.env.HOST ?? '0.0.0.0';
+const id = '([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})';
 
 const server = createServer(async (request, response) => {
-  if (request.method === "OPTIONS") {
-    sendJson(response, 204, {});
-    return;
-  }
-
+  if (request.method === 'OPTIONS') return sendJson(response, 204, {});
+  const pathname = new URL(request.url ?? '/', 'http://localhost').pathname;
   try {
-    if (request.method === "POST" && request.url === "/v1/patient/invitations/consume") {
-      await consumeInvite(request, response);
-      return;
-    }
-    if (request.method === "POST" && request.url === "/v1/professional/invitations") {
-      await generateProfessionalInvite(request, response);
-      return;
-    }
-    if (request.method === "GET" && request.url === "/v1/professional/relationships/pending") {
-      await listPendingRelationships(request, response);
-      return;
-    }
-    if (request.method === "POST" && /^\/v1\/professional\/relationships\/[0-9a-f-]{36}\/approve$/i.test(request.url ?? "")) {
-      await approveRelationship(request, response);
-      return;
-    }
-    if (request.method === "POST" && /^\/v1\/professional\/relationships\/[0-9a-f-]{36}\/reject$/i.test(request.url ?? "")) {
-      await rejectRelationship(request, response);
-      return;
-    }
-    sendJson(response, 404, { error: "Rota não encontrada." });
+    if (request.method === 'POST' && pathname === '/v1/patient/invitations/consume') return await consumeInvite(request, response);
+    if (request.method === 'POST' && pathname === '/v1/professional/invitations') return await generateInvite(request, response);
+    if (request.method === 'GET' && pathname === '/v1/professional/relationships/pending') return await listPendingRelationships(request, response);
+
+    let match = new RegExp(`^/v1/professional/relationships/${id}/(approve|reject)$`, 'i').exec(pathname);
+    if (request.method === 'POST' && match) return await decideRelationship(request, response, match[1], match[2] === 'approve' ? 'active' : 'rejected');
+
+    if (request.method === 'GET' && pathname === '/v1/professional/patients') return await listProfessionalPatients(request, response);
+    match = new RegExp(`^/v1/professional/patients/${id}$`, 'i').exec(pathname);
+    if (request.method === 'GET' && match) return await getProfessionalPatient(request, response, match[1]);
+
+    match = new RegExp(`^/v1/professional/patients/${id}/observations$`, 'i').exec(pathname);
+    if (match && request.method === 'GET') return await listObservations(request, response, match[1]);
+    if (match && request.method === 'POST') return await createObservation(request, response, match[1]);
+    match = new RegExp(`^/v1/professional/patients/${id}/observations/${id}$`, 'i').exec(pathname);
+    if (match && request.method === 'PATCH') return await correctObservation(request, response, match[1], match[2]);
+
+    match = new RegExp(`^/v1/professional/patients/${id}/appointments$`, 'i').exec(pathname);
+    if (match && request.method === 'GET') return await listAppointments(request, response, match[1]);
+    if (match && request.method === 'POST') return await createAppointment(request, response, match[1]);
+    match = new RegExp(`^/v1/professional/patients/${id}/appointments/${id}$`, 'i').exec(pathname);
+    if (match && request.method === 'PATCH') return await rescheduleAppointment(request, response, match[1], match[2]);
+    match = new RegExp(`^/v1/professional/patients/${id}/appointments/${id}/cancel$`, 'i').exec(pathname);
+    if (match && request.method === 'POST') return await cancelAppointment(request, response, match[1], match[2]);
+    match = new RegExp(`^/v1/professional/patients/${id}/timeline$`, 'i').exec(pathname);
+    if (match && request.method === 'GET') return await listTimeline(request, response, match[1]);
+
+    if (request.method === 'GET' && pathname === '/v1/professional/appointments') return await listAppointments(request, response);
+    if (request.method === 'GET' && pathname === '/v1/professional/materials') return await listMaterials(request, response);
+    if (request.method === 'POST' && pathname === '/v1/professional/materials/external') return await createExternalMaterial(request, response);
+    if (request.method === 'POST' && pathname === '/v1/professional/materials/upload-url') return await prepareMaterialUpload(request, response);
+    if (request.method === 'POST' && pathname === '/v1/professional/materials/storage') return await confirmMaterialUpload(request, response);
+    match = new RegExp(`^/v1/professional/materials/${id}/shares$`, 'i').exec(pathname);
+    if (match && request.method === 'POST') return await shareMaterial(request, response, match[1]);
+    match = new RegExp(`^/v1/professional/materials/${id}/url$`, 'i').exec(pathname);
+    if (match && request.method === 'GET') return await getMaterialUrl(request, response, match[1]);
+
+    if (request.method === 'GET' && pathname === '/v1/patient/observations') return await listObservations(request, response);
+    if (request.method === 'GET' && pathname === '/v1/patient/relationships') return await listPatientRelationships(request, response);
+    if (request.method === 'GET' && pathname === '/v1/patient/appointments') return await listAppointments(request, response);
+    if (request.method === 'GET' && pathname === '/v1/patient/materials') return await listMaterials(request, response);
+    match = new RegExp(`^/v1/patient/appointments/${id}/response$`, 'i').exec(pathname);
+    if (match && request.method === 'POST') return await respondToAppointment(request, response, match[1]);
+    match = new RegExp(`^/v1/patient/relationships/${id}/timeline$`, 'i').exec(pathname);
+    if (match && request.method === 'GET') return await listTimeline(request, response, match[1]);
+    match = new RegExp(`^/v1/patient/materials/${id}/url$`, 'i').exec(pathname);
+    if (match && request.method === 'GET') return await getMaterialUrl(request, response, match[1]);
+
+    sendJson(response, 404, { error: 'Rota não encontrada.' });
   } catch (error) {
-    if (error instanceof HttpError) {
-      sendJson(response, error.status, { error: error.publicMessage });
-      return;
-    }
-    console.error("Erro inesperado no backend", error);
-    sendJson(response, 500, { error: "Não foi possível concluir a solicitação." });
+    if (error instanceof HttpError) return sendJson(response, error.status, { error: error.publicMessage });
+    console.error('Erro inesperado no backend', { name: error instanceof Error ? error.name : 'unknown' });
+    sendJson(response, 500, { error: 'Não foi possível concluir a solicitação.' });
   }
 });
 
