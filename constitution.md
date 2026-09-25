@@ -47,9 +47,12 @@ O uso de QR Code pode ser adicionado posteriormente como outra forma de
 transportar o mesmo convite, sem alterar as regras de autorização.
 
 Um paciente não pode criar registros de acompanhamento antes de possuir uma
-associação `active`. A quantidade de profissionais que um paciente pode ter
-associados ainda deve ser definida pelo produto; o modelo não deve assumir
-uma limitação sem essa decisão.
+associação `active`. Nesta primeira versão do TCC, cada paciente pode possuir
+somente um vínculo aberto por vez: uma associação `pending` ou `active` com um
+único profissional. Relações `rejected`, `ended`, `cancelled` ou inativadas
+permanecem como histórico e não impedem um novo convite. A regra deve ser
+garantida pelo banco e pelo fluxo de consumo do convite, não apenas pela
+interface.
 
 Autenticação não equivale a autorização. Toda leitura e escrita deve respeitar papel, associação paciente-profissional e políticas do banco.
 

@@ -20,6 +20,15 @@ nome mínimo necessário para decidir e poderá aprovar (`active`) ou recusar
 (`rejected`). Em todos os estados sem associação ativa, o paciente permanece
 sem acesso aos dados de acompanhamento.
 
+## Decisão de escopo posterior
+
+Para a primeira versão do TCC, um paciente terá somente um vínculo aberto por
+vez. A task passa a incluir a aplicação das migrations no projeto Supabase
+remoto de homologação `ukvrhnrjdksrtpbgnndw` e uma migration incremental que
+impede duas relações `pending` ou `active`, mesmo que sejam de profissionais
+distintos. Relações históricas encerradas, canceladas, recusadas ou inativas
+continuam preservadas.
+
 ## Escopo incluído
 
 - Distinguir no estado de autenticação o paciente sem associação do paciente
@@ -41,9 +50,8 @@ sem acesso aos dados de acompanhamento.
 - QR Code, envio por e-mail, WhatsApp, SMS, push ou qualquer canal externo.
 - Revogação de convite ainda não consumido, cancelamento pelo paciente e
   encerramento de relações ativas.
-- Definir ou impor limite de profissionais por paciente.
-- Novas tabelas, aplicação de migration no Supabase e dados de
-  acompanhamento clínico.
+- Credenciamento de profissionais, notificações e novas funcionalidades de
+  acompanhamento.
 
 ## Decisão de dados e autorização
 
@@ -98,7 +106,21 @@ sem acesso aos dados de acompanhamento.
 - [x] Atualizar contrato e painel profissional para aprovar ou recusar, com
   feedback e prevenção de duplo envio.
 
-### 4. Validação e documentação
+### 4. Regra de profissional único e aplicação remota
+
+- [x] Criar migration incremental que substitui a unicidade por par pela
+  regra de somente um vínculo aberto (`pending` ou `active`) por paciente.
+- [x] Ajustar a RPC de consumo para retornar erro de domínio quando o paciente
+  já possuir vínculo aberto, sem depender de violação de índice.
+- [x] Vincular o CLI ao projeto remoto autorizado e simular o push das seis
+  migrations pelo fluxo versionado do Supabase.
+- [x] Habilitar o Storage pelo painel, reconciliar o histórico remoto das
+  versões antigas e aplicar as seis migrations pelo Supabase CLI.
+- [x] Confirmar no histórico remoto que as seis versões locais estão aplicadas.
+- [ ] Validar no banco remoto o histórico de migrations, os índices e as
+  policies criados, sem inserir dados reais.
+
+### 5. Validação e documentação
 
 - [x] Executar typecheck do frontend e backend, build do backend, testes
   disponíveis e revisão de diff.
