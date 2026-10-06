@@ -5,7 +5,7 @@ const corsOrigin = process.env.CORS_ORIGIN ?? 'http://localhost:8081';
 export function sendJson(response: ServerResponse, status: number, body: object): void {
   response.writeHead(status, {
     'Access-Control-Allow-Headers': 'Authorization, Content-Type',
-    'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, OPTIONS',
     'Access-Control-Allow-Origin': corsOrigin,
     'Content-Type': 'application/json; charset=utf-8',
     'X-Content-Type-Options': 'nosniff',

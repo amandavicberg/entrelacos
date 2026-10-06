@@ -1,14 +1,12 @@
 import * as DocumentPicker from 'expo-document-picker';
 import * as Linking from 'expo-linking';
-import { Redirect, useRouter } from 'expo-router';
+import { Redirect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView } from 'react-native';
 import { Button, Paragraph, SizableText, TextArea, XStack, YStack } from 'tamagui';
 
 import { AppCard } from '@/components/app-card';
-import { AppHeader } from '@/components/app-header';
 import { AppInput } from '@/components/app-input';
-import { AppScreen } from '@/components/app-screen';
+import { PatientScreen } from '@/components/patient/patient-screen';
 import { BrandButton } from '@/components/brand-button';
 import { FeedbackState } from '@/components/feedback-state';
 import { useAuth } from '@/contexts/auth-context';
@@ -25,7 +23,7 @@ const feelingLabels: { value: PatientCheckIn['feeling']; label: string }[] = [
 ];
 
 export function PatientSpaceSection({ section }: { section: Section }) {
-  const { accessState, session } = useAuth(); const router = useRouter();
+  const { accessState, session } = useAuth();
   const [relationships, setRelationships] = useState<PatientRelationship[]>([]); const [selectedRelationship, setSelectedRelationship] = useState('');
   const [documents, setDocuments] = useState<PatientDocument[]>([]); const [messages, setMessages] = useState<PatientMessage[]>([]); const [checkIns, setCheckIns] = useState<PatientCheckIn[]>([]);
   const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [saving, setSaving] = useState(false); const [feedback, setFeedback] = useState('');
@@ -42,7 +40,7 @@ export function PatientSpaceSection({ section }: { section: Section }) {
       if (section === 'check-ins') setCheckIns(await listPatientCheckIns(session.access_token));
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível carregar este espaço.'); }
     finally { setLoading(false); }
-  }, [section, selectedRelationship, session?.access_token]);
+  }, [section, selectedRelationship, session]);
   useEffect(() => { const timer = setTimeout(() => void load(), 0); return () => clearTimeout(timer); }, [load]);
   if (accessState !== 'patient-active') return <Redirect href={accessState === 'patient-pending' ? '/(patient)/pending' : '/'} />;
 
@@ -50,11 +48,11 @@ export function PatientSpaceSection({ section }: { section: Section }) {
   async function saveCheckIn() { if (!session?.access_token || !selectedRelationship || saving) return; setSaving(true); setFeedback(''); try { await createPatientCheckIn(session.access_token, selectedRelationship, feeling, content.trim() || undefined); setContent(''); setFeedback('Check-in registrado para seu acompanhamento.'); await load(); } catch (cause) { setFeedback(cause instanceof Error ? cause.message : 'Não foi possível registrar o check-in.'); } finally { setSaving(false); } }
   async function pickDocument() {
     if (!session?.access_token || !selectedRelationship || saving) return;
+    setSaving(true); setFeedback('');
+    try {
     const result = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true, multiple: false });
     if (result.canceled) return; const file = result.assets[0]; const sizeBytes = file.size ?? 0;
     if (file.mimeType !== 'application/pdf' || sizeBytes < 1 || sizeBytes > 10 * 1024 * 1024) { setFeedback('Selecione um PDF de até 10 MB.'); return; }
-    setSaving(true); setFeedback('');
-    try {
       const upload = await preparePatientDocumentUpload(session.access_token, { relationshipId: selectedRelationship, fileName: file.name, mimeType: file.mimeType, sizeBytes });
       await uploadPatientDocument(upload.storagePath, upload.token, file.uri, file.mimeType);
       await confirmPatientDocumentUpload(session.access_token, { relationshipId: selectedRelationship, documentId: upload.documentId, storagePath: upload.storagePath, fileName: file.name, mimeType: file.mimeType, sizeBytes, title: title.trim() || file.name.replace(/\.pdf$/i, ''), kind });
@@ -64,7 +62,7 @@ export function PatientSpaceSection({ section }: { section: Section }) {
   async function openDocument(document: PatientDocument) { if (!session?.access_token) return; try { await Linking.openURL(await getPatientDocumentUrl(session.access_token, document.id)); } catch (cause) { setFeedback(cause instanceof Error ? cause.message : 'Documento indisponível.'); } }
   const empty = section === 'documents' ? documents.length === 0 : section === 'messages' ? messages.length === 0 : checkIns.length === 0;
 
-  return <AppScreen><ScrollView contentContainerStyle={{ paddingBottom: 32 }}><YStack gap="$4" maxW={760} width="100%" self="center"><Button self="flex-start" chromeless color="$brand" minH="$touchTarget" onPress={() => router.back()}>Voltar</Button><AppHeader title={titles[section].title} description={titles[section].description} />
+  return <PatientScreen title={titles[section].title} description={titles[section].description}>
     {relationships.length > 1 ? <YStack gap="$2"><SizableText color="$color" fontWeight="700">Acompanhamento</SizableText><XStack gap="$2" flexWrap="wrap">{relationships.map((item) => <Button key={item.relationshipId} minH="$touchTarget" bg={selectedRelationship === item.relationshipId ? '$brand' : '$soft'} color={selectedRelationship === item.relationshipId ? '$brandContrast' : '$color'} onPress={() => setSelectedRelationship(item.relationshipId)}>{item.professionalName}</Button>)}</XStack></YStack> : null}
     {section === 'documents' ? <AppCard title="Enviar documento"><AppInput label="Título (opcional)" value={title} onChangeText={setTitle} placeholder="Ex.: Resultado de exame" /><XStack gap="$2" flexWrap="wrap">{(['exam', 'report', 'diagnosis', 'other'] as const).map((value) => <Button key={value} minH="$touchTarget" bg={kind === value ? '$brand' : '$soft'} color={kind === value ? '$brandContrast' : '$color'} onPress={() => setKind(value)}>{({ exam: 'Exame', report: 'Laudo', diagnosis: 'Diagnóstico', other: 'Outro' })[value]}</Button>)}</XStack><Paragraph color="$muted" size="$2">Somente PDF, até 10 MB. O documento será visível apenas para o profissional deste acompanhamento.</Paragraph><BrandButton disabled={saving || !selectedRelationship} onPress={() => void pickDocument()}>{saving ? 'Enviando…' : 'Selecionar PDF'}</BrandButton></AppCard> : null}
     {section === 'messages' ? <AppCard title="Novo recado"><TextArea aria-label="Recado para a próxima sessão" placeholder="O que você gostaria que a profissional soubesse?" value={content} onChangeText={setContent} maxLength={2000} minH={120} borderColor="$borderColor" /><BrandButton disabled={saving || !selectedRelationship || !content.trim()} onPress={() => void sendMessage()}>{saving ? 'Publicando…' : 'Adicionar ao mural'}</BrandButton></AppCard> : null}
@@ -73,5 +71,5 @@ export function PatientSpaceSection({ section }: { section: Section }) {
     {!loading && !error && section === 'documents' ? documents.map((item) => <AppCard key={item.id}><SizableText color="$color" fontWeight="700">{item.title}</SizableText><Paragraph color="$muted" size="$2">{new Date(item.createdAt).toLocaleString('pt-BR')} · {(item.sizeBytes / 1024 / 1024).toFixed(1)} MB</Paragraph><Button self="flex-start" minH="$touchTarget" onPress={() => void openDocument(item)}>Abrir PDF</Button></AppCard>) : null}
     {!loading && !error && section === 'messages' ? messages.map((item) => <AppCard key={item.id}><Paragraph color="$color">{item.content}</Paragraph><Paragraph color="$muted" size="$2">{new Date(item.createdAt).toLocaleString('pt-BR')}</Paragraph></AppCard>) : null}
     {!loading && !error && section === 'check-ins' ? checkIns.map((item) => <AppCard key={item.id}><SizableText color="$color" fontWeight="700">{feelingLabels.find((label) => label.value === item.feeling)?.label}</SizableText>{item.note ? <Paragraph color="$color">{item.note}</Paragraph> : null}<Paragraph color="$muted" size="$2">{new Date(item.createdAt).toLocaleString('pt-BR')}</Paragraph></AppCard>) : null}
-  </YStack></ScrollView></AppScreen>;
+  </PatientScreen>;
 }

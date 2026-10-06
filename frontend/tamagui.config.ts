@@ -2,31 +2,42 @@ import { createSystemFont, defaultConfig } from '@tamagui/config/v5';
 import { animations } from '@tamagui/config/v5-rn';
 import { createTamagui } from 'tamagui';
 
-// Paleta oficial do EntreLaços. Os nomes semânticos abaixo devem ser usados
-// pelos componentes; não introduza valores hexadecimais em telas.
+// Cores oficiais e suas superfícies derivadas, compartilhadas por todas as telas.
 const entrelacosLightColors = {
-  surface: '#FFFCF6',
-  soft: '#E4EAEB',
-  brandHover: '#293A4D',
-  brandPress: '#202D3C',
-  inputBorder: '#91A2AA',
-  pendingBackground: '#F8E8CF',
-  pendingColor: '#74501F',
-  declinedBackground: '#F3E1DD',
-  declinedColor: '#8D4037',
+  background: '#F8F7F3', backgroundHover: '#F0F2F2', backgroundPress: '#E4EAEB', backgroundFocus: '#FFFFFF',
+  surface: '#FFFFFF', soft: '#EDF1F3', color: '#292F36', colorHover: '#292F36', colorPress: '#292F36', colorFocus: '#292F36',
+  brand: '#34465C', brandContrast: '#FFFCF6', brandHover: '#293A4D', brandPress: '#202D3C',
+  muted: '#59656E', placeholderColor: '#65727B', inputBorder: '#91A2AA',
+  borderColor: '#DCE2E4', borderColorHover: '#91A2AA', borderColorFocus: '#34465C', borderColorPress: '#34465C', outlineColor: '#34465C',
+  accent: '#BE914F', accentSoft: '#F3EBDD', accentText: '#755522',
+  hero: '#34465C', heroText: '#F3EBDD', heroMuted: '#D5DFE4',
+  pendingBackground: '#F8E8CF', pendingColor: '#74501F',
+  declinedBackground: '#F3E1DD', declinedColor: '#8D4037', red9: '#A13630', red10: '#A13630',
+  shadowColor: '#292F36', overlay: '#00000052',
+  logoSurface: '#F3EBDD', logoBorder: '#E1D4BE',
+};
+const entrelacosDarkColors = {
+  background: '#1D2733', backgroundHover: '#334355', backgroundPress: '#40556D', backgroundFocus: '#293747',
+  surface: '#263444', soft: '#334355', color: '#F3EBDD', colorHover: '#F3EBDD', colorPress: '#F3EBDD', colorFocus: '#F3EBDD',
+  brand: '#C6D7E8', brandContrast: '#202D3C', brandHover: '#D9E4EE', brandPress: '#AABFD3',
+  muted: '#C4CED1', placeholderColor: '#B4C0C7', inputBorder: '#91A2AA',
+  borderColor: '#4A5D70', borderColorHover: '#91A2AA', borderColorFocus: '#C6D7E8', borderColorPress: '#C6D7E8', outlineColor: '#C6D7E8',
+  accent: '#BE914F', accentSoft: '#463D30', accentText: '#E8C58F',
+  hero: '#34465C', heroText: '#F3EBDD', heroMuted: '#D5DFE4',
+  pendingBackground: '#5B482D', pendingColor: '#F3D49C',
+  declinedBackground: '#5A3735', declinedColor: '#F4BBB3', red9: '#F4BBB3', red10: '#F4BBB3',
+  shadowColor: '#000000', overlay: '#00000085',
+  logoSurface: '#F3EBDD', logoBorder: '#BE914F',
 };
 
-const entrelacosDarkColors = {
-  surface: '#34465C',
-  soft: '#40556D',
-  brandHover: '#C79F61',
-  brandPress: '#D9B778',
-  inputBorder: '#91A2AA',
-  pendingBackground: '#5B482D',
-  pendingColor: '#F3D49C',
-  declinedBackground: '#5A3735',
-  declinedColor: '#F4BBB3',
-};
+// Component subthemes reset missing custom colors to token defaults on web.
+// Carry semantic colors into them so dark inputs/buttons keep their contrast.
+const brandComponentThemes = Object.fromEntries(
+  Object.entries(defaultConfig.themes).map(([name, theme]) => [
+    name,
+    { ...theme, ...(name.startsWith('dark') ? entrelacosDarkColors : entrelacosLightColors) },
+  ]),
+);
 
 const poppinsBody = createSystemFont({
   font: {
@@ -57,72 +68,19 @@ export const tamaguiConfig = createTamagui({
     ...defaultConfig.tokens,
     color: entrelacosLightColors,
     size: { ...defaultConfig.tokens.size, control: 54, touchTarget: 44, loginContent: 440 },
-    radius: { ...defaultConfig.tokens.radius, control: 16, panel: 24 },
+    radius: { ...defaultConfig.tokens.radius, control: 12, panel: 20 },
   },
   fonts: {
     body: poppinsBody,
     heading: poppinsHeading,
   },
   themes: {
-    ...defaultConfig.themes,
-    light_professional: {
-      ...defaultConfig.themes.light,
-      ...entrelacosLightColors,
-      background: '#F3EBDD', color: '#292F36',
-      brand: '#34465C', brandContrast: '#F3EBDD', muted: '#59656E',
-      borderColor: '#C8D1D2',
-    },
-    dark_professional: {
-      ...defaultConfig.themes.dark,
-      ...entrelacosDarkColors,
-      background: '#202B38', color: '#F3EBDD',
-      brand: '#BE914F', brandContrast: '#292F36', muted: '#C4CED1',
-      borderColor: '#526473',
-    },
-    light_login: {
-      ...defaultConfig.themes.light,
-      ...entrelacosLightColors,
-      background: '#F3EBDD',
-      backgroundHover: '#E9E0D0',
-      backgroundPress: '#DED2BE',
-      backgroundFocus: '#FFFCF6',
-      color: '#292F36',
-      colorHover: '#292F36',
-      colorPress: '#292F36',
-      colorFocus: '#292F36',
-      brand: '#34465C',
-      brandContrast: '#F3EBDD',
-      muted: '#59656E',
-      placeholderColor: '#6C777E',
-      borderColor: '#C8D1D2',
-      borderColorHover: '#91A2AA',
-      borderColorFocus: '#34465C',
-      borderColorPress: '#34465C',
-      outlineColor: '#34465C',
-      red9: '#A13630',
-      red10: '#A13630',
-      shadowColor: '#292F36',
-    },
-    light: {
-      ...defaultConfig.themes.light,
-      ...entrelacosLightColors,
-      background: '#F3EBDD',
-      color: '#292F36',
-      brand: '#34465C',
-      brandContrast: '#F3EBDD',
-      muted: '#59656E',
-      borderColor: '#C8D1D2',
-    },
-    dark: {
-      ...defaultConfig.themes.dark,
-      ...entrelacosDarkColors,
-      background: '#202B38',
-      color: '#F3EBDD',
-      brand: '#BE914F',
-      brandContrast: '#292F36',
-      muted: '#C4CED1',
-      borderColor: '#526473',
-    },
+    ...brandComponentThemes,
+    light: { ...defaultConfig.themes.light, ...entrelacosLightColors },
+    dark: { ...defaultConfig.themes.dark, ...entrelacosDarkColors },
+    light_login: { ...defaultConfig.themes.light, ...entrelacosLightColors },
+    light_professional: { ...defaultConfig.themes.light, ...entrelacosLightColors },
+    dark_professional: { ...defaultConfig.themes.dark, ...entrelacosDarkColors },
   },
 });
 
@@ -131,5 +89,6 @@ export default tamaguiConfig;
 export type AppTamaguiConfig = typeof tamaguiConfig;
 
 declare module 'tamagui' {
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- Tamagui uses interface augmentation.
   interface TamaguiCustomConfig extends AppTamaguiConfig {}
 }

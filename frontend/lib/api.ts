@@ -1,3 +1,5 @@
+import { getSupabaseClient } from '@/lib/supabase';
+
 function getApiUrl(): string {
   const url = process.env.EXPO_PUBLIC_API_URL;
   if (!url) throw new Error('EXPO_PUBLIC_API_URL não foi definida no ambiente do frontend.');
@@ -270,4 +272,3 @@ export async function getBirthdayMessage(accessToken: string): Promise<{ isBirth
 export async function saveBirthdayMessage(accessToken: string, relationshipId: string, content: string): Promise<void> {
   await requestJson(`/v1/professional/patients/${relationshipId}/birthday-message`, accessToken, { method: 'PUT', body: JSON.stringify({ content }) });
 }
-import { getSupabaseClient } from '@/lib/supabase';

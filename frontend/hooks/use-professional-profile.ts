@@ -8,19 +8,18 @@ export type ProfessionalProfile = {
   specialty?: string;
   registration?: string;
 };
-type ProfileState = { userId: string; status: 'loading' | 'error' | 'ready'; profile?: ProfessionalProfile };
+type ProfileState = { userId: string; attempt: number; status: 'loading' | 'error' | 'ready'; profile?: ProfessionalProfile };
 
 export function useProfessionalProfile() {
   const { session } = useAuth();
   const userId = session?.user.id ?? '';
   const [attempt, setAttempt] = useState(0);
-  const [state, setState] = useState<ProfileState>({ userId: '', status: 'loading' });
+  const [state, setState] = useState<ProfileState>({ userId: '', attempt: 0, status: 'loading' });
   const retry = useCallback(() => setAttempt((value) => value + 1), []);
 
   useEffect(() => {
     if (!userId) return;
     const controller = new AbortController();
-    setState({ userId, status: 'loading' });
     async function load() {
       try {
         const client = getSupabaseClient();
@@ -37,14 +36,14 @@ export function useProfessionalProfile() {
           specialty: details?.specialty?.trim() || undefined,
           registration: [details?.registration_type?.trim(), details?.registration_number?.trim()].filter(Boolean).join(' ') || undefined,
         };
-        if (!controller.signal.aborted) setState({ userId, status: 'ready', profile });
+        if (!controller.signal.aborted) setState({ userId, attempt, status: 'ready', profile });
       } catch {
-        if (!controller.signal.aborted) setState({ userId, status: 'error' });
+        if (!controller.signal.aborted) setState({ userId, attempt, status: 'error' });
       }
     }
     void load();
     return () => controller.abort();
   }, [userId, attempt]);
 
-  return { ...(state.userId === userId ? state : { userId, status: 'loading' as const }), retry };
+  return { ...(state.userId === userId && state.attempt === attempt ? state : { userId, attempt, status: 'loading' as const }), retry };
 }

@@ -9,5 +9,13 @@ export default function PatientLayout() {
   if (accessState !== 'patient-active' && accessState !== 'patient-pending' && accessState !== 'patient-unassociated') {
     return <Redirect href="/" />;
   }
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Protected guard={accessState === 'patient-unassociated'}><Stack.Screen name="connect" /></Stack.Protected>
+      <Stack.Protected guard={accessState === 'patient-pending'}><Stack.Screen name="pending" /></Stack.Protected>
+      <Stack.Protected guard={accessState === 'patient-active'}>
+        {['index', 'agenda', 'materials', 'observations', 'history', 'documents', 'messages', 'check-ins'].map((name) => <Stack.Screen key={name} name={name} />)}
+      </Stack.Protected>
+    </Stack>
+  );
 }

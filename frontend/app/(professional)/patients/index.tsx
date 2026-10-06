@@ -10,6 +10,8 @@ import { InitialsAvatar, ProfessionalBrand, ProfessionalScreen } from '@/compone
 import { useAuth } from '@/contexts/auth-context';
 import { listProfessionalPatients, type FollowUpPatient } from '@/lib/api';
 
+const searchable = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').trim();
+
 export default function PatientsScreen() {
   const { session } = useAuth();
   const router = useRouter();
@@ -30,8 +32,8 @@ export default function PatientsScreen() {
 
   useEffect(() => { const timeout = setTimeout(() => { void load(); }, 0); return () => clearTimeout(timeout); }, [load]);
   const filtered = useMemo(() => {
-    const normalized = query.trim().toLocaleLowerCase('pt-BR');
-    return normalized ? patients.filter((patient) => patient.patientName.toLocaleLowerCase('pt-BR').includes(normalized)) : patients;
+    const normalized = searchable(query);
+    return normalized ? patients.filter((patient) => searchable(patient.patientName).includes(normalized)) : patients;
   }, [patients, query]);
 
   return (
@@ -43,6 +45,7 @@ export default function PatientsScreen() {
       {!loading && error ? <YStack gap="$3"><FeedbackState status="error" title="Não foi possível carregar" description={error} /><Button minH="$touchTarget" onPress={load}>Tentar novamente</Button></YStack> : null}
       {!loading && !error && patients.length === 0 ? <FeedbackState status="empty" title="Nenhum paciente ativo" description="Pacientes aprovados aparecerão aqui." /> : null}
       {!loading && !error && patients.length > 0 && filtered.length === 0 ? <FeedbackState status="empty" title="Nenhum resultado" description="Tente buscar por outro nome." /> : null}
+      {!loading && !error && patients.length > 0 ? <Paragraph color="$muted" size="$2">{filtered.length} {filtered.length === 1 ? 'paciente encontrado' : 'pacientes encontrados'}</Paragraph> : null}
       {!loading && !error ? <YStack gap="$3">{filtered.map((patient) => (
         <AppCard key={patient.relationshipId} background="$surface" rounded="$panel" p="$4">
           <XStack items="center" gap="$3" flexWrap="wrap">

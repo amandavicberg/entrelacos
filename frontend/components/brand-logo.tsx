@@ -6,16 +6,25 @@ type BrandLogoProps = {
   width?: number;
 };
 
-/** Renderiza exclusivamente os arquivos oficiais da marca, sem recoloração. */
+/** Preserva a marca e sua legibilidade em superfícies claras e escuras. */
 export function BrandLogo({ compact = false, width }: BrandLogoProps) {
   const imageWidth = width ?? (compact ? 44 : 220);
   const imageHeight = compact ? imageWidth : Math.round(imageWidth / 2.4);
   const source = compact
     ? require('../assets/brand/entrelacos-app-icon.png')
-    : require('../assets/brand/entrelacos-logo-horizontal.png');
+    : require('../assets/brand/entrelacos-logo-horizontal-transparent.png');
 
   return (
-    <XStack width={imageWidth} height={imageHeight} shrink={0}>
+    <XStack
+      self="flex-start"
+      shrink={0}
+      bg={compact ? 'transparent' : '$logoSurface'}
+      px={compact ? 0 : '$3'}
+      py={compact ? 0 : '$2'}
+      rounded="$control"
+      borderWidth={compact ? 0 : 1}
+      borderColor="$logoBorder"
+    >
       <Image
         source={source}
         accessibilityLabel="EntreLaços"

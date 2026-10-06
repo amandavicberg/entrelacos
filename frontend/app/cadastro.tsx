@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link, Redirect, type RelativePathString } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button, getTokens, Paragraph, SizableText, Spinner, useTheme, XStack, YStack } from 'tamagui';
 
 import { AuthScreen } from '@/components/auth-screen';
@@ -8,6 +8,8 @@ import { AppInput } from '@/components/app-input';
 import { BrandButton } from '@/components/brand-button';
 import { FeedbackState } from '@/components/feedback-state';
 import { type AppRole, useAuth } from '@/contexts/auth-context';
+import { authErrorMessage, reportAuthError } from '@/lib/auth-errors';
+import { initialValues, validateRegistration, birthDateToIso, formatBirthDate, formatPhone, type FormValues, type FormErrors } from '@/lib/registration-form';
 import { registerUser, resendConfirmationEmail } from '@/lib/registration';
 
 const loginPath = '/login' as RelativePathString;
@@ -16,104 +18,6 @@ const patientPendingPath = '/(patient)/pending' as RelativePathString;
 const patientConnectPath = '/(patient)/connect' as RelativePathString;
 const professionalPath = '/(professional)' as RelativePathString;
 
-type FormValues = {
-  fullName: string;
-  birthDate: string;
-  phone: string;
-  email: string;
-  password: string;
-  passwordConfirmation: string;
-  role: AppRole;
-  specialty: string;
-  registrationType: string;
-  registrationNumber: string;
-};
-
-type FormErrors = Partial<Record<keyof FormValues, string>>;
-
-const initialValues: FormValues = {
-  fullName: '',
-  birthDate: '',
-  phone: '',
-  email: '',
-  password: '',
-  passwordConfirmation: '',
-  role: 'patient',
-  specialty: '',
-  registrationType: '',
-  registrationNumber: '',
-};
-
-function validate(values: FormValues): FormErrors {
-  const errors: FormErrors = {};
-  const requiredFields: (keyof FormValues)[] = [
-    'fullName',
-    'birthDate',
-    'phone',
-    'email',
-    'password',
-    'passwordConfirmation',
-  ];
-
-  for (const field of requiredFields) {
-    if (!values[field].trim()) errors[field] = 'Preencha este campo.';
-  }
-  if (values.email && !/^\S+@\S+\.\S+$/.test(values.email.trim())) {
-    errors.email = 'Informe um e-mail válido.';
-  }
-  if (values.password && values.password.length < 8) {
-    errors.password = 'A senha deve ter pelo menos 8 caracteres.';
-  }
-  if (values.passwordConfirmation && values.password !== values.passwordConfirmation) {
-    errors.passwordConfirmation = 'As senhas precisam ser iguais.';
-  }
-  if (values.birthDate && !isValidBirthDate(values.birthDate)) {
-    errors.birthDate = 'Informe uma data válida no formato DD/MM/AAAA.';
-  }
-  if (values.phone && values.phone.replace(/\D/g, '').length < 10) {
-    errors.phone = 'Informe um telefone válido.';
-  }
-  if (values.role === 'professional') {
-    for (const field of ['specialty', 'registrationType', 'registrationNumber'] as const) {
-      if (!values[field].trim()) errors[field] = 'Preencha este campo.';
-    }
-  }
-  return errors;
-}
-
-function isValidBirthDate(value: string) {
-  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
-  if (!match) return false;
-
-  const [, day, month, year] = match;
-  const date = new Date(Number(year), Number(month) - 1, Number(day));
-  return (
-    date.getFullYear() === Number(year)
-    && date.getMonth() === Number(month) - 1
-    && date.getDate() === Number(day)
-    && date <= new Date()
-  );
-}
-
-function birthDateToIso(value: string) {
-  const [day, month, year] = value.split('/');
-  return `${year}-${month}-${day}`;
-}
-
-function formatBirthDate(value: string) {
-  const digits = value.replace(/\D/g, '').slice(0, 8);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-}
-
-function formatPhone(value: string) {
-  const digits = value.replace(/\D/g, '').slice(0, 11);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-}
-
 export default function RegistrationScreen() {
   const { accessState } = useAuth();
   const theme = useTheme();
@@ -121,6 +25,8 @@ export default function RegistrationScreen() {
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submissionInFlight = useRef(false);
+  const resendInFlight = useRef(false);
   const [submitError, setSubmitError] = useState<string>();
   const [isComplete, setIsComplete] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
@@ -163,54 +69,67 @@ export default function RegistrationScreen() {
   }
 
   async function submit() {
-    if (isSubmitting) return;
-    const nextErrors = validate(values);
+    if (submissionInFlight.current) return;
+    const nextErrors = validateRegistration(values);
     setErrors(nextErrors);
     setSubmitError(undefined);
-    if (Object.keys(nextErrors).length > 0) return;
-
-    setIsSubmitting(true);
-    const { error } = await registerUser({
-      fullName: values.fullName.trim(),
-      birthDate: birthDateToIso(values.birthDate),
-      phone: values.phone.trim(),
-      email: values.email.trim().toLowerCase(),
-      password: values.password,
-      role: values.role,
-      specialty: values.role === 'professional' ? values.specialty.trim() : undefined,
-      registrationType: values.role === 'professional' ? values.registrationType.trim() : undefined,
-      registrationNumber: values.role === 'professional' ? values.registrationNumber.trim() : undefined,
-    });
-    setIsSubmitting(false);
-
-    if (error) {
-      setSubmitError(getRegistrationError(error.message));
+    if (Object.keys(nextErrors).length > 0) {
+      setSubmitError('Revise os campos destacados acima para continuar.');
       return;
     }
-    setResendCountdown(60);
-    setIsComplete(true);
+
+    submissionInFlight.current = true;
+    setIsSubmitting(true);
+    try {
+      const { error } = await registerUser({
+        fullName: values.fullName.trim(),
+        birthDate: birthDateToIso(values.birthDate),
+        phone: values.phone.trim(),
+        email: values.email.trim().toLowerCase(),
+        password: values.password,
+        role: values.role,
+        specialty: values.role === 'professional' ? values.specialty.trim() : undefined,
+        registrationType: values.role === 'professional' ? values.registrationType.trim() : undefined,
+        registrationNumber: values.role === 'professional' ? values.registrationNumber.trim() : undefined,
+      });
+      if (error) throw error;
+      setResendCountdown(60);
+      setIsComplete(true);
+    } catch (error) {
+      reportAuthError('signup', error);
+      setSubmitError(authErrorMessage(error));
+    } finally {
+      submissionInFlight.current = false;
+      setIsSubmitting(false);
+    }
   }
 
   async function resendEmail() {
-    if (resendCountdown > 0 || isResending) return;
+    if (resendCountdown > 0 || resendInFlight.current) return;
+    resendInFlight.current = true;
     setIsResending(true);
     setResendMessage(undefined);
     setResendError(undefined);
-    const { error } = await resendConfirmationEmail(values.email.trim().toLowerCase());
-    setIsResending(false);
-    if (error) {
-      setResendError('Não foi possível reenviar agora. Tente novamente em alguns instantes.');
-      return;
+    try {
+      const { error } = await resendConfirmationEmail(values.email.trim().toLowerCase());
+      if (error) throw error;
+      setResendCountdown(60);
+      setResendMessage('Solicitação recebida. Confira sua caixa de entrada e o spam.');
+    } catch (error) {
+      reportAuthError('resend', error);
+      setResendError(authErrorMessage(error, 'resend'));
+      setResendCountdown(60);
+    } finally {
+      resendInFlight.current = false;
+      setIsResending(false);
     }
-    setResendCountdown(60);
-    setResendMessage('Enviamos um novo link de confirmação para o seu e-mail.');
   }
 
   if (isComplete) {
     return (
       <AuthScreen
         title="Confirme seu e-mail"
-        description="Enviamos um link de confirmação para o endereço informado. Depois de confirmar, entre com seus dados para continuar."
+        description="Confira sua caixa de entrada para confirmar seu acesso. Se você já tem uma conta, pode entrar com seus dados."
         footer={
           <Link href={loginPath} replace asChild>
             <Button chromeless self="center" color="$brand" fontWeight="800">Voltar para o login</Button>
@@ -223,6 +142,7 @@ export default function RegistrationScreen() {
               <Ionicons name="mail-unread-outline" size={22} color={theme.brand.val} />
               <SizableText color="$color" fontWeight="800">Próximo passo</SizableText>
             </XStack>
+            <SizableText color="$color" fontWeight="600">{values.email.trim().toLowerCase()}</SizableText>
             <Paragraph color="$muted">Procure o e-mail na sua caixa de entrada e, se necessário, no spam.</Paragraph>
           </YStack>
           <YStack gap="$2">
@@ -234,7 +154,7 @@ export default function RegistrationScreen() {
               </BrandButton>
             )}
             {resendMessage ? <Paragraph color="$brand">{resendMessage}</Paragraph> : null}
-            {resendError ? <Paragraph color="$red10" accessibilityRole="alert">{resendError}</Paragraph> : null}
+            {resendError ? <Paragraph color="$red10" role="alert">{resendError}</Paragraph> : null}
           </YStack>
         </YStack>
       </AuthScreen>
@@ -245,7 +165,7 @@ export default function RegistrationScreen() {
     <AuthScreen
       title="Crie seu acesso"
       description="Escolha seu perfil e preencha apenas os dados necessários para começar."
-      maxW={620}
+      maxW={560}
       footer={
         <XStack items="center" justify="center" gap="$1" flexWrap="wrap" pb="$2">
           <Paragraph color="$muted">Já tem uma conta?</Paragraph>
@@ -258,7 +178,7 @@ export default function RegistrationScreen() {
       <YStack gap="$5">
         <YStack gap="$2">
           <SizableText color="$muted" size="$3" fontWeight="700">Seu perfil</SizableText>
-          <XStack gap="$1" p="$1" bg="$backgroundHover" borderWidth={1} borderColor="$borderColor" style={{ borderRadius: tokens.radius.$5.val }} accessibilityRole="radiogroup">
+          <XStack gap="$1" p="$1" bg="$backgroundHover" borderWidth={1} borderColor="$borderColor" style={{ borderRadius: tokens.radius.$5.val }} role="radiogroup" aria-label="Perfil da nova conta">
             {(['patient', 'professional'] as const).map((role) => {
               const selected = values.role === role;
               return (
@@ -266,9 +186,14 @@ export default function RegistrationScreen() {
                   key={role}
                   flex={1}
                   minH={48}
+                  height="auto"
+                  py="$2"
+                  px="$2"
+                  textProps={{ text: 'center', shrink: 1 }}
                   disabled={isSubmitting}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: selected, disabled: isSubmitting }}
+                  role="radio"
+                  aria-checked={selected}
+                  aria-disabled={isSubmitting}
                   bg={selected ? '$brand' : 'transparent'}
                   color={selected ? '$brandContrast' : '$muted'}
                   borderWidth={0}
@@ -291,12 +216,12 @@ export default function RegistrationScreen() {
 
         <YStack gap="$4">
           <SizableText color="$color" size="$5" fontWeight="800">Seus dados</SizableText>
-          <AppInput label="Nome completo" placeholder="Como prefere ser chamado(a)?" value={values.fullName} onChangeText={(value) => updateValue('fullName', value)} error={errors.fullName} autoCapitalize="words" autoComplete="name" returnKeyType="next" disabled={isSubmitting} startAdornment={<Ionicons name="person-outline" size={19} color={theme.muted.val} />} />
+          <AppInput maxLength={160} label="Nome completo" placeholder="Seu nome completo" value={values.fullName} onChangeText={(value) => updateValue('fullName', value)} error={errors.fullName} autoCapitalize="words" autoComplete="name" returnKeyType="next" disabled={isSubmitting} startAdornment={<Ionicons name="person-outline" size={19} color={theme.muted.val} />} />
           <AppInput label="Data de nascimento" placeholder="DD/MM/AAAA" value={values.birthDate} onChangeText={(value) => updateValue('birthDate', formatBirthDate(value))} error={errors.birthDate} keyboardType="number-pad" disabled={isSubmitting} startAdornment={<Ionicons name="calendar-outline" size={19} color={theme.muted.val} />} />
           <AppInput label="Telefone" placeholder="(00) 00000-0000" value={values.phone} onChangeText={(value) => updateValue('phone', formatPhone(value))} error={errors.phone} keyboardType="phone-pad" autoComplete="tel" disabled={isSubmitting} startAdornment={<Ionicons name="call-outline" size={19} color={theme.muted.val} />} />
-          <AppInput label="E-mail" placeholder="seuemail@exemplo.com" value={values.email} onChangeText={(value) => updateValue('email', value)} error={errors.email} autoCapitalize="none" autoCorrect={false} autoComplete="email" keyboardType="email-address" textContentType="emailAddress" disabled={isSubmitting} startAdornment={<Ionicons name="mail-outline" size={19} color={theme.muted.val} />} />
-          <AppInput label="Senha" placeholder="Crie uma senha com pelo menos 8 caracteres" value={values.password} onChangeText={(value) => updateValue('password', value)} error={errors.password} secureTextEntry={!showPassword} autoCapitalize="none" autoCorrect={false} autoComplete="new-password" textContentType="newPassword" disabled={isSubmitting} startAdornment={<Ionicons name="lock-closed-outline" size={19} color={theme.muted.val} />} endAdornment={<PasswordVisibilityButton visible={showPassword} disabled={isSubmitting} color={theme.muted.val} onPress={() => setShowPassword((value) => !value)} />} />
-          <AppInput label="Confirmar senha" placeholder="Repita sua senha" value={values.passwordConfirmation} onChangeText={(value) => updateValue('passwordConfirmation', value)} error={errors.passwordConfirmation} secureTextEntry={!showPasswordConfirmation} autoCapitalize="none" autoCorrect={false} autoComplete="new-password" textContentType="newPassword" returnKeyType={values.role === 'professional' ? 'next' : 'done'} onSubmitEditing={values.role === 'patient' ? submit : undefined} disabled={isSubmitting} startAdornment={<Ionicons name="shield-checkmark-outline" size={19} color={theme.muted.val} />} endAdornment={<PasswordVisibilityButton visible={showPasswordConfirmation} disabled={isSubmitting} color={theme.muted.val} onPress={() => setShowPasswordConfirmation((value) => !value)} />} />
+          <AppInput maxLength={254} type="email" label="E-mail" placeholder="seuemail@exemplo.com" value={values.email} onChangeText={(value) => updateValue('email', value)} error={errors.email} autoCapitalize="none" autoCorrect={false} autoComplete="email" keyboardType="email-address" textContentType="emailAddress" disabled={isSubmitting} startAdornment={<Ionicons name="mail-outline" size={19} color={theme.muted.val} />} />
+          <AppInput label="Senha" placeholder="Pelo menos 8 caracteres" value={values.password} onChangeText={(value) => updateValue('password', value)} error={errors.password} secureTextEntry={!showPassword} type={showPassword ? 'text' : 'password'} autoCapitalize="none" autoCorrect={false} autoComplete="new-password" textContentType="newPassword" disabled={isSubmitting} startAdornment={<Ionicons name="lock-closed-outline" size={19} color={theme.muted.val} />} endAdornment={<PasswordVisibilityButton visible={showPassword} disabled={isSubmitting} color={theme.muted.val} onPress={() => setShowPassword((value) => !value)} />} />
+          <AppInput label="Confirmar senha" placeholder="Repita sua senha" value={values.passwordConfirmation} onChangeText={(value) => updateValue('passwordConfirmation', value)} error={errors.passwordConfirmation} secureTextEntry={!showPasswordConfirmation} type={showPasswordConfirmation ? 'text' : 'password'} autoCapitalize="none" autoCorrect={false} autoComplete="new-password" textContentType="newPassword" returnKeyType={values.role === 'professional' ? 'next' : 'done'} onSubmitEditing={values.role === 'patient' ? submit : undefined} disabled={isSubmitting} startAdornment={<Ionicons name="shield-checkmark-outline" size={19} color={theme.muted.val} />} endAdornment={<PasswordVisibilityButton visible={showPasswordConfirmation} disabled={isSubmitting} color={theme.muted.val} onPress={() => setShowPasswordConfirmation((value) => !value)} />} />
         </YStack>
 
         {values.role === 'professional' ? (
@@ -312,7 +237,7 @@ export default function RegistrationScreen() {
         ) : null}
 
         {submitError ? (
-          <YStack p="$3" borderWidth={1} borderColor="$red9" bg="$backgroundHover" style={{ borderRadius: tokens.radius.$4.val }} accessibilityRole="alert">
+          <YStack p="$3" borderWidth={1} borderColor="$red9" bg="$backgroundHover" style={{ borderRadius: tokens.radius.$4.val }} role="alert">
             <SizableText color="$red10" fontWeight="700">Não foi possível criar sua conta</SizableText>
             <Paragraph color="$red10">{submitError}</Paragraph>
           </YStack>
@@ -328,17 +253,6 @@ export default function RegistrationScreen() {
 
 function PasswordVisibilityButton({ visible, disabled, color, onPress }: { visible: boolean; disabled: boolean; color: string; onPress: () => void }) {
   return (
-    <Button circular chromeless size="$3" disabled={disabled} accessibilityLabel={visible ? 'Ocultar senha' : 'Mostrar senha'} accessibilityState={{ expanded: visible, disabled }} icon={<Ionicons name={visible ? 'eye-off-outline' : 'eye-outline'} size={20} color={color} />} onPress={onPress} />
+    <Button circular chromeless size="$3" minW="$touchTarget" minH="$touchTarget" disabled={disabled} aria-label={visible ? 'Ocultar senha' : 'Mostrar senha'} aria-pressed={visible} aria-disabled={disabled} icon={<Ionicons name={visible ? 'eye-off-outline' : 'eye-outline'} size={20} color={color} />} onPress={onPress} />
   );
-}
-
-function getRegistrationError(message: string) {
-  const normalizedMessage = message.toLowerCase();
-  if (normalizedMessage.includes('already registered')) return 'Este e-mail já está cadastrado. Entre com sua conta.';
-  if (normalizedMessage.includes('redirect')) return 'O link de confirmação ainda não está autorizado para este aplicativo. Configure o esquema entrelacos nas URLs de redirecionamento do Supabase.';
-  if (normalizedMessage.includes('database error saving new user')) return 'Não foi possível finalizar o cadastro. Verifique se a configuração do perfil no Supabase está atualizada.';
-  if (normalizedMessage.includes('signups not allowed')) return 'O cadastro de novos usuários está desativado no Supabase.';
-  if (normalizedMessage.includes('rate limit')) return 'O limite de envio de e-mails foi atingido. Aguarde alguns minutos antes de tentar novamente.';
-  if (normalizedMessage.includes('password')) return 'A senha não atende aos requisitos de segurança.';
-  return 'Não foi possível concluir o cadastro. Verifique os dados e tente novamente.';
 }

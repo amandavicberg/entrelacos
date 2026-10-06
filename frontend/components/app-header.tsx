@@ -8,7 +8,7 @@ type AppHeaderProps = {
 
 export function AppHeader({ eyebrow, title, description }: AppHeaderProps) {
   return (
-    <YStack gap="$2">
+    <YStack gap="$2" shrink={1} minW={0}>
       {eyebrow ? (
         <Paragraph color="$brand" fontWeight="700" letterSpacing={1} size="$2">
           {eyebrow}

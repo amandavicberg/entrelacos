@@ -30,6 +30,7 @@ export default function ResetPasswordScreen() {
   }
 
   async function submit() {
+    if (submitting) return;
     if (password.length < 8) {
       setError('A senha deve ter pelo menos 8 caracteres.');
       return;
@@ -40,15 +41,15 @@ export default function ResetPasswordScreen() {
     }
     setSubmitting(true);
     setError('');
-    const { error: updateError } = await getSupabaseClient().auth.updateUser({ password });
-    setSubmitting(false);
-    if (updateError) {
-      setError('Não foi possível atualizar sua senha. Solicite um novo link e tente novamente.');
-      return;
-    }
-    await signOut();
-    setCompleted(true);
-    router.replace(loginPath);
+    try {
+      const { error: updateError } = await getSupabaseClient().auth.updateUser({ password });
+      if (updateError) throw updateError;
+      setCompleted(true);
+      await signOut();
+      router.replace(loginPath);
+    } catch {
+      setError('Não foi possível concluir a atualização. Tente novamente ou solicite um novo link.');
+    } finally { setSubmitting(false); }
   }
 
   return (

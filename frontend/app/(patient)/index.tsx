@@ -2,23 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { Redirect, type RelativePathString, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView } from 'react-native';
-import { Button, Card, Paragraph, Separator, SizableText, TextArea, useTheme, XStack, YStack } from 'tamagui';
+import { Button, Card, Paragraph, Separator, SizableText, useTheme, XStack, YStack } from 'tamagui';
 
 import { AppCard } from '@/components/app-card';
 import { AppHeader } from '@/components/app-header';
 import { AppScreen } from '@/components/app-screen';
-import { BrandButton } from '@/components/brand-button';
 import { FeedbackState } from '@/components/feedback-state';
 import { useAuth } from '@/contexts/auth-context';
 import { getBirthdayMessage, listAppointments, listMaterials, listPatientObservations, type FollowUpAppointment, type FollowUpMaterial, type FollowUpObservation } from '@/lib/api';
-
-const feelings = [
-  { label: 'Tranquilo(a)', icon: 'leaf-outline' as const },
-  { label: 'Feliz', icon: 'sunny-outline' as const },
-  { label: 'Cansado(a)', icon: 'cloud-outline' as const },
-  { label: 'Ansioso(a)', icon: 'pulse-outline' as const },
-  { label: 'Triste', icon: 'rainy-outline' as const },
-];
 
 const menuItems = [
   { label: 'Minha agenda', icon: 'calendar-outline' as const, href: '/(patient)/agenda' as RelativePathString },
@@ -28,10 +19,7 @@ const menuItems = [
   { label: 'Meus documentos', icon: 'document-attach-outline' as const, href: '/(patient)/documents' as RelativePathString },
   { label: 'Mural para a sessão', icon: 'chatbox-outline' as const, href: '/(patient)/messages' as RelativePathString },
   { label: 'Check-ins', icon: 'heart-outline' as const, href: '/(patient)/check-ins' as RelativePathString },
-  { label: 'Aprendizados', icon: 'sparkles-outline' as const },
-  { label: 'Documentos e exames', icon: 'document-text-outline' as const },
-  { label: 'Ferramentas de apoio', icon: 'heart-outline' as const },
-  { label: 'Mensagem para minha profissional', icon: 'chatbubble-ellipses-outline' as const },
+
 ];
 
 function nextAppointment(appointments: FollowUpAppointment[]) {
@@ -49,9 +37,6 @@ export default function PatientHomeScreen() {
   const theme = useTheme();
   const router = useRouter();
   const [menuVisible, setMenuVisible] = useState(false);
-  const [selectedFeeling, setSelectedFeeling] = useState<string | null>(null);
-  const [dailyNote, setDailyNote] = useState('');
-  const [checkInFeedback, setCheckInFeedback] = useState('');
   const [appointments, setAppointments] = useState<FollowUpAppointment[]>([]);
   const [observations, setObservations] = useState<FollowUpObservation[]>([]);
   const [materials, setMaterials] = useState<FollowUpMaterial[]>([]);
@@ -72,7 +57,7 @@ export default function PatientHomeScreen() {
     } catch (cause) {
       setSummaryError(cause instanceof Error ? cause.message : 'Não foi possível carregar o resumo do acompanhamento.');
     } finally { setSummaryLoading(false); }
-  }, [session?.access_token]);
+  }, [session]);
 
   useEffect(() => {
     const timeout = setTimeout(() => void loadSummary(), 0);
@@ -84,8 +69,7 @@ export default function PatientHomeScreen() {
   if (accessState !== 'patient-active') return <FeedbackState status="loading" title="Validando acesso" />;
 
   const upcoming = nextAppointment(appointments);
-  const openItem = (item: (typeof menuItems)[number]) => { setMenuVisible(false); if (item.href) router.push(item.href); };
-  const resetCheckIn = () => setCheckInFeedback('');
+  const openItem = (item: (typeof menuItems)[number]) => { setMenuVisible(false); router.push(item.href); };
 
   async function handleSignOut() {
     if (leaving) return;
@@ -102,20 +86,11 @@ export default function PatientHomeScreen() {
             <Button aria-label="Abrir menu do paciente" circular minW="$touchTarget" minH="$touchTarget" bg="$surface" borderWidth={1} borderColor="$borderColor" icon={<Ionicons name="menu-outline" size={24} color={theme.color.val} />} onPress={() => setMenuVisible(true)} />
           </XStack>
 
-          <AppCard title="Como você está hoje?">
-            <Paragraph color="$muted">Escolha a opção mais próxima do seu momento e, se quiser, faça uma anotação para você.</Paragraph>
-            <XStack flexWrap="wrap" gap="$2" accessibilityRole="radiogroup">
-              {feelings.map((feeling) => {
-                const isSelected = selectedFeeling === feeling.label;
-                return <Button key={feeling.label} minH="$touchTarget" flex={1} minW={112} bg={isSelected ? '$brand' : '$surface'} color={isSelected ? '$brandContrast' : '$color'} borderWidth={1} borderColor={isSelected ? '$brand' : '$borderColor'} pressStyle={{ opacity: 0.82 }} accessibilityRole="radio" accessibilityState={{ selected: isSelected }} icon={<Ionicons name={feeling.icon} size={18} color={isSelected ? theme.brandContrast.val : theme.color.val} />} onPress={() => { setSelectedFeeling(feeling.label); resetCheckIn(); }}>{feeling.label}</Button>;
-              })}
-            </XStack>
-            <TextArea aria-label="Anotação pessoal sobre como estou me sentindo hoje" placeholder="Quer anotar algo sobre este momento?" value={dailyNote} onChangeText={(value) => { setDailyNote(value); resetCheckIn(); }} maxLength={500} minH={92} borderColor="$borderColor" focusStyle={{ borderColor: '$brand' }} />
-            <XStack items="center" justify="space-between" gap="$3" flexWrap="wrap">
-              <Paragraph color="$muted" size="$2" flex={1}>Este espaço ainda não salva informações no seu acompanhamento.</Paragraph>
-              <BrandButton disabled={!selectedFeeling && !dailyNote.trim()} onPress={() => setCheckInFeedback('Sua anotação ficou pronta nesta tela. Ela não é enviada automaticamente; leve o que for importante para a próxima conversa.')}>Preparar anotação</BrandButton>
-            </XStack>
-            {checkInFeedback ? <Paragraph color="$brand" size="$2" role="status">{checkInFeedback}</Paragraph> : null}
+          <AppCard background="$hero" borderColor="$hero" p="$5">
+            <XStack items="center" gap="$2"><Ionicons name="heart-outline" size={22} color={theme.accent.val} /><SizableText color="$heroText" size="$2" letterSpacing={1}>UM MOMENTO PARA VOCÊ</SizableText></XStack>
+            <SizableText color="$heroText" fontFamily="$heading" size="$7">Como você está hoje?</SizableText>
+            <Paragraph color="$heroMuted">Registre seu momento e o que gostaria de levar para a próxima conversa.</Paragraph>
+            <Button self="flex-start" minH="$control" height="auto" py="$3" bg="$accentSoft" color="$hero" onPress={() => router.push('/(patient)/check-ins' as RelativePathString)}>Fazer meu check-in</Button>
           </AppCard>
 
           <AppCard title="Próxima sessão">
@@ -132,10 +107,10 @@ export default function PatientHomeScreen() {
             <XStack gap="$3" flexWrap="wrap">
               {menuItems.slice(0, 3).map((item) => {
                 const count = item.label === 'Orientações compartilhadas' ? observations.length : undefined;
-                return <Card key={item.label} flex={1} minW={180} p="$4" borderWidth={1} borderColor="$borderColor" bg="$surface" pressStyle={{ opacity: 0.82 }} onPress={() => openItem(item)} accessibilityRole="button" accessibilityLabel={`Abrir ${item.label}`}><YStack gap="$3"><Ionicons name={item.icon} size={24} color={theme.brand.val} /><SizableText color="$color" fontWeight="600">{item.label}</SizableText><Paragraph color="$muted" size="$2">{count === undefined ? 'Abrir' : count === 0 ? 'Nada novo por aqui' : `${count} disponível${count > 1 ? 'is' : ''}`}</Paragraph></YStack></Card>;
+                return <Card key={item.label} flex={1} minW={180} p="$4" borderWidth={1} borderColor="$borderColor" bg="$surface" pressStyle={{ opacity: 0.82 }} onPress={() => openItem(item)} accessibilityRole="button" accessibilityLabel={`Abrir ${item.label}`}><YStack gap="$3"><Ionicons name={item.icon} size={24} color={theme.brand.val} /><SizableText color="$color" fontWeight="600">{item.label}</SizableText><Paragraph color="$muted" size="$2">{count === undefined ? 'Abrir' : count === 0 ? 'Nada novo por aqui' : `${count} ${count === 1 ? 'disponível' : 'disponíveis'}`}</Paragraph></YStack></Card>;
               })}
             </XStack>
-            {!summaryLoading && !summaryError && materials.length > 0 ? <Button self="flex-start" minH="$touchTarget" onPress={() => router.push('/(patient)/materials' as RelativePathString)}>Ver {materials.length} material{materials.length > 1 ? 'is' : ''} compartilhado{materials.length > 1 ? 's' : ''}</Button> : null}
+            {!summaryLoading && !summaryError && materials.length > 0 ? <Button self="flex-start" minH="$touchTarget" onPress={() => router.push('/(patient)/materials' as RelativePathString)}>Ver {materials.length} {materials.length === 1 ? 'material' : 'materiais'} compartilhado{materials.length > 1 ? 's' : ''}</Button> : null}
           </YStack>
 
           <AppCard title="Um cuidado importante"><XStack gap="$3" items="flex-start"><YStack bg="$soft" p="$3" rounded="$control"><Ionicons name="shield-checkmark-outline" size={24} color={theme.brand.val} /></YStack><YStack gap="$1" flex={1}><SizableText color="$color" fontWeight="700">Protocolo de emergência</SizableText><Paragraph color="$muted">Ainda não há um protocolo disponibilizado neste acompanhamento. Em caso de urgência, procure o serviço de emergência da sua região.</Paragraph></YStack></XStack></AppCard>
@@ -143,12 +118,12 @@ export default function PatientHomeScreen() {
       </ScrollView>
 
       <Modal visible={menuVisible} transparent animationType="slide" onRequestClose={() => setMenuVisible(false)}>
-        <Pressable accessibilityLabel="Fechar menu" style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.32)' }} onPress={() => setMenuVisible(false)}>
+        <Pressable accessibilityLabel="Fechar menu" style={{ flex: 1, backgroundColor: theme.overlay.val }} onPress={() => setMenuVisible(false)}>
           <Pressable style={{ width: '86%', maxWidth: 380, height: '100%', padding: 24, paddingTop: 64, backgroundColor: theme.background.val }} onPress={(event) => event.stopPropagation()}>
             <YStack gap="$4" flex={1}>
               <XStack items="center" justify="space-between"><AppHeader eyebrow="MENU" title="Seu espaço" /><Button aria-label="Fechar menu" circular chromeless minW="$touchTarget" minH="$touchTarget" icon={<Ionicons name="close-outline" size={26} color={theme.color.val} />} onPress={() => setMenuVisible(false)} /></XStack>
               <Separator borderColor="$borderColor" />
-              <YStack gap="$2" flex={1}>{menuItems.map((item) => <Button key={item.label} justify="flex-start" minH="$touchTarget" bg="$surface" color="$color" borderWidth={1} borderColor="$borderColor" icon={<Ionicons name={item.icon} size={21} color={theme.color.val} />} onPress={() => openItem(item)} accessibilityHint={item.href ? undefined : 'Este recurso estará disponível em breve.'}>{item.href ? item.label : `${item.label} · Em breve`}</Button>)}</YStack>
+              <ScrollView style={{ flex: 1 }}><YStack gap="$2">{menuItems.map((item) => <Button key={item.label} justify="flex-start" minH="$touchTarget" bg="$surface" color="$color" borderWidth={1} borderColor="$borderColor" icon={<Ionicons name={item.icon} size={21} color={theme.color.val} />} onPress={() => openItem(item)} >{item.label}</Button>)}</YStack></ScrollView>
               <Button justify="flex-start" minH="$touchTarget" chromeless color="$muted" disabled={leaving} icon={<Ionicons name="log-out-outline" size={21} color={theme.muted.val} />} onPress={() => void handleSignOut()}>{leaving ? 'Saindo…' : 'Sair da conta'}</Button>
             </YStack>
           </Pressable>

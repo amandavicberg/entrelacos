@@ -8,6 +8,17 @@ organização inicial do frontend.
 
 **Status:** atualizado em 2026-09-09.
 
+## Atualização da interface e autenticação web (2026-10-05)
+
+O estado atual da revisão está em [Revisão web e interface](revisao-web-e-interface.md).
+A interface usa superfícies e formulários responsivos, logo PNG transparente
+sobre base marfim para contraste e cores semânticas nos subtemas dos componentes.
+O check-in da home aponta para o fluxo persistido. Telas internas reutilizam
+serviços de acompanhamento existentes; referências abaixo a dados somente
+demonstrativos e à ausência dessas tabelas descrevem a configuração inicial,
+não o estado atual. O retorno de confirmação/recuperação e o build web também
+foram atualizados. Publicação e teste integrado com contas continuam pendentes.
+
 ## Estrutura atual
 
 - [`frontend/`](../../frontend/): aplicativo React Native com Expo SDK 57,

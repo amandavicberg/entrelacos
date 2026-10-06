@@ -1,15 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link, Redirect, type RelativePathString } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, getTokens, Paragraph, SizableText, Spinner, Theme, useTheme, XStack, YStack } from 'tamagui';
+import { Button, getTokens, Paragraph, SizableText, Spinner, useTheme, XStack, YStack } from 'tamagui';
 
 import { AuthScreen } from '@/components/auth-screen';
 import { AppInput } from '@/components/app-input';
 import { BrandLogo } from '@/components/brand-logo';
 import { BrandButton } from '@/components/brand-button';
 import { FeedbackState } from '@/components/feedback-state';
+import { authErrorMessage } from '@/lib/auth-errors';
+import { resendConfirmationEmail } from '@/lib/registration';
 import { type AppRole, useAuth } from '@/contexts/auth-context';
 
 const forgotPasswordPath = '/forgot-password' as RelativePathString;
@@ -21,14 +22,7 @@ const registrationPath = '/cadastro' as RelativePathString;
 type Errors = Partial<Record<'email' | 'password' | 'inviteCode', string>>;
 
 export default function LoginScreen() {
-  return (
-    <Theme name="light_login">
-      <YStack flex={1} bg="$background">
-        <StatusBar style="dark" />
-        <LoginContent />
-      </YStack>
-    </Theme>
-  );
+  return <LoginContent />;
 }
 
 function LoginContent() {
@@ -43,8 +37,17 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [feedback, setFeedback] = useState('');
+  const [feedbackTone, setFeedbackTone] = useState<'error' | 'success'>('error');
   const [submitting, setSubmitting] = useState(false);
   const submissionInFlight = useRef(false);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [resendWait, setResendWait] = useState(0);
+  const [resending, setResending] = useState(false);
+  useEffect(() => {
+    if (!resendWait) return;
+    const timer = setTimeout(() => setResendWait(resendWait - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendWait]);
 
   if (accessState === 'loading') return (
     <SafeAreaView style={{ flex: 1, justifyContent: 'center' }}>
@@ -81,6 +84,8 @@ function LoginContent() {
     const nextErrors = validate();
     setErrors(nextErrors);
     setFeedback('');
+    setFeedbackTone('error');
+    setNeedsConfirmation(false);
     if (Object.keys(nextErrors).length) {
       if (nextErrors.inviteCode) setIsInviteExpanded(true);
       return;
@@ -96,6 +101,7 @@ function LoginContent() {
         inviteCode: role === 'patient' ? inviteCode : undefined,
       });
     } catch (error) {
+      setNeedsConfirmation(Boolean(error && typeof error === 'object' && 'code' in error && error.code === 'email_not_confirmed'));
       const message = error instanceof Error ? error.message : 'Não foi possível entrar. Tente novamente.';
       if (role === 'patient' && message.toLowerCase().includes('código de convite')) {
         setIsInviteExpanded(true);
@@ -105,6 +111,19 @@ function LoginContent() {
       submissionInFlight.current = false;
       setSubmitting(false);
     }
+  }
+
+  async function resendEmail() {
+    if (resending || resendWait) return;
+    setResending(true);
+    setFeedbackTone('error');
+    try {
+      const { error } = await resendConfirmationEmail(email.trim().toLowerCase());
+      if (error) throw error;
+      setFeedbackTone('success');
+      setFeedback('Solicitação recebida. Confira sua caixa de entrada e o spam.');
+    } catch (error) { setFeedback(authErrorMessage(error, 'resend')); }
+    finally { setResending(false); setResendWait(60); }
   }
 
   return (
@@ -270,8 +289,9 @@ function LoginContent() {
           ) : null}
 
           {feedback ? (
-            <YStack p="$3" borderWidth={1} borderColor="$red9" bg="$backgroundHover" style={{ borderRadius: tokens.radius.$4.val }} role="alert">
-              <Paragraph color="$red10">{feedback}</Paragraph>
+            <YStack p="$3" borderWidth={1} borderColor={feedbackTone === 'error' ? '$red9' : '$borderColor'} bg="$backgroundHover" style={{ borderRadius: tokens.radius.$4.val }} role={feedbackTone === 'error' ? 'alert' : 'status'}>
+              <Paragraph color={feedbackTone === 'error' ? '$red10' : '$brand'}>{feedback}</Paragraph>
+              {needsConfirmation ? <Button chromeless minH="$touchTarget" height="auto" py="$2" color="$brand" disabled={resending || resendWait > 0} onPress={resendEmail}>{resending ? 'Enviando…' : resendWait ? `Reenviar em ${resendWait}s` : 'Reenviar confirmação'}</Button> : null}
             </YStack>
           ) : null}
 

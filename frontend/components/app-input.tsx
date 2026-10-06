@@ -12,7 +12,7 @@ type AppInputProps = ComponentProps<typeof Input> & {
 
 export function AppInput({
   label, error, id, startAdornment, endAdornment,
-  appearance = 'default', onFocus, onBlur, ...props
+  appearance = 'outlined', onFocus, onBlur, ...props
 }: AppInputProps) {
   const tokens = getTokens();
   const [focused, setFocused] = useState(false);
@@ -21,8 +21,7 @@ export function AppInput({
   const inputId = id ?? `input-${label.toLowerCase().replace(/\s+/g, '-')}`;
   const errorId = `${inputId}-error`;
   const hasAdornment = Boolean(startAdornment || endAdornment);
-  const borderColor = error ? '$red10'
-    : outlined ? (focused ? '$borderColorFocus' : '$inputBorder') : '$borderColor';
+  const borderColor = error ? '$red10' : focused ? '$borderColorFocus' : '$inputBorder';
 
   return (
     <YStack gap="$2">
@@ -37,7 +36,7 @@ export function AppInput({
           px="$3"
           flexWrap={outlined ? 'wrap' : 'nowrap'}
           bg={outlined ? '$surface' : '$background'}
-          borderWidth={outlined ? 2 : 1}
+          borderWidth={1}
           borderColor={borderColor}
           style={{ borderRadius: outlined ? tokens.radius.control.val : tokens.radius.$4.val }}
           focusWithinStyle={outlined ? undefined : { borderColor: '$brand', borderWidth: 2 }}

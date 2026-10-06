@@ -1,9 +1,9 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert } from 'react-native';
 import * as Linking from 'expo-linking';
 import { Button, Paragraph, SizableText, TextArea, XStack, YStack } from 'tamagui';
 
+import { CancellationConfirmation } from '@/components/cancellation-confirmation';
 import { AppCard } from '@/components/app-card';
 import { AppHeader } from '@/components/app-header';
 import { AppInput } from '@/components/app-input';
@@ -53,6 +53,8 @@ export default function PatientDetailScreen() {
   const { relationshipId } = useLocalSearchParams<{ relationshipId: string }>();
   const { session } = useAuth();
   const router = useRouter();
+  const [section, setSection] = useState('observations');
+  const [cancelId, setCancelId] = useState<string | null>(null);
   const [patient, setPatient] = useState<FollowUpPatient | null>(null);
   const [observations, setObservations] = useState<FollowUpObservation[]>([]);
   const [appointments, setAppointments] = useState<FollowUpAppointment[]>([]);
@@ -130,17 +132,10 @@ export default function PatientDetailScreen() {
     finally { setSaving(false); }
   }
 
-  function requestCancel(appointment: FollowUpAppointment) {
-    Alert.alert('Cancelar consulta?', 'Esta ação ficará registrada no histórico.', [
-      { text: 'Voltar', style: 'cancel' },
-      { text: 'Cancelar consulta', style: 'destructive', onPress: () => void runCancel(appointment) },
-    ]);
-  }
-
   async function runCancel(appointment: FollowUpAppointment) {
     if (!session?.access_token || !relationshipId || saving) return;
     setSaving(true);
-    try { await cancelProfessionalAppointment(session.access_token, relationshipId, appointment.id); setFeedback('Consulta cancelada.'); await load(); }
+    try { await cancelProfessionalAppointment(session.access_token, relationshipId, appointment.id); setCancelId(null); setFeedback('Consulta cancelada.'); await load(); }
     catch (cause) { setFeedback(cause instanceof Error ? cause.message : 'Não foi possível cancelar.'); }
     finally { setSaving(false); }
   }
@@ -167,19 +162,26 @@ export default function PatientDetailScreen() {
   }
 
   if (loading) return <ProfessionalScreen><FeedbackState status="loading" title="Carregando acompanhamento" /></ProfessionalScreen>;
-  if (error || !patient) return <ProfessionalScreen><FeedbackState status="error" title="Acompanhamento indisponível" description={error} /><Button minH="$touchTarget" onPress={() => router.back()}>Voltar</Button></ProfessionalScreen>;
+  if (error || !patient) return <ProfessionalScreen><FeedbackState status="error" title="Acompanhamento indisponível" description={error} /><Button minH="$touchTarget" onPress={() => router.replace('/(professional)/patients')}>Voltar</Button></ProfessionalScreen>;
 
   return (
     <ProfessionalScreen>
       <ProfessionalBrand />
-      <Button self="flex-start" chromeless color="$brand" minH="$touchTarget" onPress={() => router.back()}>Voltar aos pacientes</Button>
+      <Button self="flex-start" chromeless color="$brand" minH="$touchTarget" onPress={() => router.replace('/(professional)/patients')}>Voltar aos pacientes</Button>
       <AppHeader eyebrow="ACOMPANHAMENTO ATIVO" title={patient.patientName} description="Observações, agenda, histórico e materiais deste vínculo." />
       {feedback ? <Paragraph role="alert" color="$brand">{feedback}</Paragraph> : null}
 
-      <AppCard title="Mensagem de aniversário" background="$surface" rounded="$panel">
+      <XStack gap="$2" flexWrap="wrap" role="group" aria-label="Seções do acompanhamento">
+        {[['observations', 'Observações'], ['appointments', 'Agenda'], ['patient', 'Registros do paciente'], ['materials', 'Materiais'], ['history', 'Histórico'], ['birthday', 'Aniversário']].map(([value, label]) => (
+          <Button key={value} minH="$touchTarget" bg={section === value ? '$brand' : '$soft'} color={section === value ? '$brandContrast' : '$color'} aria-pressed={section === value} onPress={() => setSection(value)}>{label}</Button>
+        ))}
+      </XStack>
+      {section === 'birthday' ? <>      <AppCard title="Mensagem de aniversário" background="$surface" rounded="$panel">
         <YStack gap="$3"><Paragraph color="$muted">Opcional. Se não houver personalização, o paciente verá a mensagem padrão no aniversário.</Paragraph><TextArea aria-label="Mensagem de aniversário para o paciente" value={birthdayContent} onChangeText={setBirthdayContent} placeholder="Escreva uma mensagem acolhedora" maxLength={1000} minH={100} borderColor="$borderColor" /><BrandButton disabled={saving || !birthdayContent.trim()} onPress={() => void saveBirthday()}>{saving ? 'Salvando…' : 'Salvar mensagem'}</BrandButton></YStack>
       </AppCard>
 
+</> : null}
+      {section === 'observations' ? <>
       <AppCard title={editingObservation ? 'Corrigir observação' : 'Nova observação'} background="$surface" rounded="$panel">
         <YStack gap="$3">
           <SizableText color="$muted" size="$2">Observações são privadas por padrão.</SizableText>
@@ -203,29 +205,38 @@ export default function PatientDetailScreen() {
         ))}</YStack>
       </AppCard>
 
+      </> : null}
+      {section === 'appointments' ? <>
       <AppCard title={editingAppointment ? 'Reagendar consulta' : 'Nova consulta'} background="$surface" rounded="$panel">
         <YStack gap="$3"><AppInput label="Início" value={startsAt} onChangeText={setStartsAt} placeholder="AAAA-MM-DDTHH:mm" /><AppInput label="Término" value={endsAt} onChangeText={setEndsAt} placeholder="AAAA-MM-DDTHH:mm" /><XStack gap="$2" flexWrap="wrap"><BrandButton disabled={saving} onPress={saveAppointment}>{editingAppointment ? 'Salvar reagendamento' : 'Criar consulta'}</BrandButton>{editingAppointment ? <Button minH="$touchTarget" onPress={() => setEditingAppointment(null)}>Cancelar edição</Button> : null}</XStack></YStack>
       </AppCard>
 
       <AppCard title="Agenda deste paciente" background="$surface" rounded="$panel">
         <YStack gap="$3">{appointments.length === 0 ? <Paragraph color="$muted">Nenhuma consulta agendada.</Paragraph> : appointments.map((item) => (
-          <YStack key={item.id} gap="$2" p="$3" bg="$background" rounded="$control"><SizableText color="$color" fontWeight="700">{new Date(item.startsAt).toLocaleString('pt-BR')}</SizableText><Paragraph color="$muted">{appointmentStatus(item)}</Paragraph>{item.state === 'scheduled' ? <XStack gap="$2" flexWrap="wrap"><Button minH="$touchTarget" onPress={() => { setEditingAppointment(item.id); setStartsAt(localDateTime(new Date(item.startsAt))); setEndsAt(localDateTime(new Date(item.endsAt))); }}>Reagendar</Button><Button minH="$touchTarget" bg="$declinedBackground" color="$declinedColor" onPress={() => requestCancel(item)}>Cancelar</Button></XStack> : null}</YStack>
+          <YStack key={item.id} gap="$2" p="$3" bg="$background" rounded="$control"><SizableText color="$color" fontWeight="700">{new Date(item.startsAt).toLocaleString('pt-BR')}</SizableText><Paragraph color="$muted">{appointmentStatus(item)}</Paragraph>{item.state === 'scheduled' ? <XStack gap="$2" flexWrap="wrap"><Button minH="$touchTarget" onPress={() => { setEditingAppointment(item.id); setStartsAt(localDateTime(new Date(item.startsAt))); setEndsAt(localDateTime(new Date(item.endsAt))); }}>Reagendar</Button><Button minH="$touchTarget" bg="$declinedBackground" color="$declinedColor" disabled={saving} onPress={() => setCancelId(item.id)}>Cancelar</Button></XStack> : null}{cancelId === item.id ? <CancellationConfirmation busy={saving} onKeep={() => setCancelId(null)} onConfirm={() => void runCancel(item)} /> : null}</YStack>
         ))}</YStack>
       </AppCard>
 
+      </> : null}
+      {section === 'materials' ? <>
       <AppCard title="Materiais disponíveis" background="$surface" rounded="$panel">
-        <YStack gap="$3">{materials.length === 0 ? <Paragraph color="$muted">Cadastre materiais na aba Materiais.</Paragraph> : materials.map((item) => <XStack key={item.id} gap="$3" items="center" flexWrap="wrap" p="$3" bg="$background" rounded="$control"><YStack flex={1} minW={180}><SizableText color="$color" fontWeight="700">{item.title}</SizableText><Paragraph color="$muted" size="$2">{item.kind}</Paragraph></YStack><Button minH="$touchTarget" disabled={saving} onPress={() => handleShare(item.id)}>Compartilhar</Button></XStack>)}</YStack>
+        <YStack gap="$3">{materials.length === 0 ? <Paragraph color="$muted">Cadastre materiais na aba Materiais.</Paragraph> : materials.map((item) => <XStack key={item.id} gap="$3" items="center" flexWrap="wrap" p="$3" bg="$background" rounded="$control"><YStack flex={1} minW={180}><SizableText color="$color" fontWeight="700">{item.title}</SizableText><Paragraph color="$muted" size="$2">{({ ebook: 'E-book', podcast: 'Podcast', video: 'Vídeo', pdf: 'PDF', audio: 'Áudio', other: 'Outro' })[item.kind]}</Paragraph></YStack><Button minH="$touchTarget" disabled={saving} onPress={() => handleShare(item.id)}>Compartilhar</Button></XStack>)}</YStack>
       </AppCard>
 
+      </> : null}
+      {section === 'patient' ? <>
       <AppCard title="Documentos enviados pelo paciente" background="$surface" rounded="$panel"><YStack gap="$3">{documents.length === 0 ? <Paragraph color="$muted">Nenhum PDF enviado ainda.</Paragraph> : documents.map((item) => <XStack key={item.id} gap="$3" items="center" flexWrap="wrap" p="$3" bg="$background" rounded="$control"><YStack flex={1} minW={180}><SizableText color="$color" fontWeight="700">{item.title}</SizableText><Paragraph color="$muted" size="$2">{new Date(item.createdAt).toLocaleString('pt-BR')}</Paragraph></YStack><Button minH="$touchTarget" onPress={() => void openDocument(item)}>Abrir PDF</Button></XStack>)}</YStack></AppCard>
 
       <AppCard title="Mural do paciente" background="$surface" rounded="$panel"><YStack gap="$3">{patientMessages.length === 0 ? <Paragraph color="$muted">Nenhum recado para a próxima sessão.</Paragraph> : patientMessages.map((item) => <YStack key={item.id} gap="$1" p="$3" bg="$background" rounded="$control"><Paragraph color="$color">{item.content}</Paragraph><Paragraph color="$muted" size="$2">{new Date(item.createdAt).toLocaleString('pt-BR')}</Paragraph></YStack>)}</YStack></AppCard>
 
-      <AppCard title="Como o paciente está" background="$surface" rounded="$panel"><YStack gap="$3">{checkIns.length === 0 ? <Paragraph color="$muted">Nenhum check-in registrado.</Paragraph> : checkIns.map((item) => <YStack key={item.id} gap="$1" p="$3" bg="$background" rounded="$control"><SizableText color="$color" fontWeight="700">{item.feeling}</SizableText>{item.note ? <Paragraph color="$color">{item.note}</Paragraph> : null}<Paragraph color="$muted" size="$2">{new Date(item.createdAt).toLocaleString('pt-BR')}</Paragraph></YStack>)}</YStack></AppCard>
+      <AppCard title="Como o paciente está" background="$surface" rounded="$panel"><YStack gap="$3">{checkIns.length === 0 ? <Paragraph color="$muted">Nenhum check-in registrado.</Paragraph> : checkIns.map((item) => <YStack key={item.id} gap="$1" p="$3" bg="$background" rounded="$control"><SizableText color="$color" fontWeight="700">{({ calm: 'Tranquilo(a)', happy: 'Feliz', tired: 'Cansado(a)', anxious: 'Ansioso(a)', sad: 'Triste', other: 'Outro' })[item.feeling]}</SizableText>{item.note ? <Paragraph color="$color">{item.note}</Paragraph> : null}<Paragraph color="$muted" size="$2">{new Date(item.createdAt).toLocaleString('pt-BR')}</Paragraph></YStack>)}</YStack></AppCard>
 
+      </> : null}
+      {section === 'history' ? <>
       <AppCard title="Histórico cronológico" background="$surface" rounded="$panel">
         <YStack gap="$3">{timeline.length === 0 ? <Paragraph color="$muted">Nenhum evento registrado.</Paragraph> : timeline.map((item) => <YStack key={`${item.type}-${item.id}`} pl="$3" borderLeftWidth={3} borderLeftColor="$brand"><SizableText color="$color" fontWeight="700">{item.label}</SizableText><Paragraph color="$muted" size="$2">{new Date(item.at).toLocaleString('pt-BR')}</Paragraph>{item.content ? <Paragraph color="$color">{item.content}</Paragraph> : null}</YStack>)}</YStack>
       </AppCard>
+      </> : null}
     </ProfessionalScreen>
   );
 }

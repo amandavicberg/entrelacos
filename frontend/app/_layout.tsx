@@ -6,7 +6,7 @@ import {
   Poppins_800ExtraBold,
   useFonts,
 } from '@expo-google-fonts/poppins';
-import { Redirect, Stack, type RelativePathString } from 'expo-router';
+import { Redirect, Stack, usePathname, type RelativePathString } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -24,7 +24,8 @@ const resetPasswordPath = '/reset-password' as RelativePathString;
 
 function RootNavigator() {
   const { accessState } = useAuth();
-  if (accessState === 'password-recovery') return <Redirect href={resetPasswordPath} />;
+  const pathname = usePathname();
+  if (accessState === 'password-recovery' && pathname !== '/reset-password') return <Redirect href={resetPasswordPath} />;
   return (
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false }} />

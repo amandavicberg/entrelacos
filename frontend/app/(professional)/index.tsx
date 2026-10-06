@@ -20,6 +20,8 @@ export default function ProfessionalHomeScreen() {
   const [loadingInvite, setLoadingInvite] = useState(false);
   const [decidingId, setDecidingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState('');
+  const [pendingLoading, setPendingLoading] = useState(true);
+  const [pendingError, setPendingError] = useState('');
   const [copied, setCopied] = useState(false);
   const [patients, setPatients] = useState<FollowUpPatient[]>([]);
   const [appointments, setAppointments] = useState<FollowUpAppointment[]>([]);
@@ -42,11 +44,12 @@ export default function ProfessionalHomeScreen() {
   }
 
   async function loadPendingRelationships(accessToken: string) {
+    setPendingLoading(true); setPendingError('');
     try {
       setPendingRelationships(await listPendingRelationships(accessToken));
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : 'Não foi possível carregar as solicitações.');
-    }
+      setPendingError(error instanceof Error ? error.message : 'Não foi possível carregar as solicitações.');
+    } finally { setPendingLoading(false); }
   }
 
   async function handleGenerateInvite() {
@@ -65,8 +68,10 @@ export default function ProfessionalHomeScreen() {
 
   async function handleCopyCode() {
     if (!invitation) return;
-    await Clipboard.setStringAsync(invitation.code);
-    setCopied(true);
+    try {
+      await Clipboard.setStringAsync(invitation.code);
+      setCopied(true);
+    } catch { setFeedback('Não foi possível copiar. Selecione o código e copie manualmente.'); }
   }
 
   async function handleApprove(relationshipId: string) {
@@ -117,6 +122,11 @@ export default function ProfessionalHomeScreen() {
         <H1 color="$color" fontFamily="$heading" size="$8">{profile.profile ? `Olá, ${profile.profile.name.split(/\s+/)[0]}` : 'Olá, profissional'}</H1>
         <Paragraph color="$muted" size="$4">Seu espaço para acompanhar e cuidar.</Paragraph>
       </YStack>
+      {summaryLoading ? <FeedbackState status="loading" title="Carregando resumo" /> : null}
+      {!summaryLoading && summaryError ? <YStack><FeedbackState status="error" title="Não foi possível carregar o resumo" description={summaryError} /><Button minH="$touchTarget" onPress={() => session?.access_token && loadSummary(session.access_token)}>Tentar novamente</Button></YStack> : null}
+      {!summaryLoading && !summaryError ? <XStack gap="$3" flexWrap="wrap"><AppCard flex={1} minW={150} title="Pacientes ativos" background="$surface"><SizableText color="$brand" fontFamily="$heading" size="$8">{patients.length}</SizableText></AppCard><AppCard flex={1} minW={150} title="Próximas consultas" background="$surface"><SizableText color="$brand" fontFamily="$heading" size="$8">{appointments.filter((item) => item.state === 'scheduled' && Date.parse(item.startsAt) >= Date.now()).length}</SizableText></AppCard><AppCard flex={1} minW={150} title="Aguardando confirmação" background="$surface"><SizableText color="$brand" fontFamily="$heading" size="$8">{appointments.filter((item) => item.state === 'scheduled' && item.patientResponse === 'pending' && Date.parse(item.startsAt) >= Date.now()).length}</SizableText></AppCard></XStack> : null}
+      {!summaryLoading && !summaryError && patients.length === 0 ? <FeedbackState status="empty" title="Seu acompanhamento começa aqui" description="Seus pacientes aparecerão aqui quando estiverem vinculados a você." /> : null}
+      <QuickActions />
       <ProfileCard state={profile} />
       <AppCard title="Convites e solicitações" background="$surface" rounded="$panel" p="$5">
         <Paragraph color="$muted">Gere um código para convidar um paciente ao seu acompanhamento.</Paragraph>
@@ -131,7 +141,7 @@ export default function ProfessionalHomeScreen() {
             <Paragraph color="$muted" size="$2">Válido até {new Date(invitation.expiresAt).toLocaleString('pt-BR')}.</Paragraph>
           </YStack>
         ) : null}
-        {pendingRelationships.length ? pendingRelationships.map((relationship) => (
+        {pendingLoading ? <FeedbackState status="loading" title="Buscando solicitações" /> : pendingError ? <YStack gap="$2"><Paragraph color="$red10" role="alert">{pendingError}</Paragraph><Button onPress={() => session && loadPendingRelationships(session.access_token)}>Tentar novamente</Button></YStack> : pendingRelationships.length ? pendingRelationships.map((relationship) => (
           <YStack key={relationship.id} gap="$2" p="$3" bg="$backgroundHover" borderWidth={1} borderColor="$borderColor" rounded="$control">
             <SizableText color="$color" fontWeight="700">{relationship.patientName}</SizableText>
             <Paragraph color="$muted" size="$2">Solicitação recebida em {new Date(relationship.requestedAt).toLocaleString('pt-BR')}.</Paragraph>
@@ -147,11 +157,7 @@ export default function ProfessionalHomeScreen() {
         )) : <Paragraph color="$muted" size="$2">Nenhuma solicitação pendente.</Paragraph>}
         {feedback ? <Paragraph color="$red10" role="alert">{feedback}</Paragraph> : null}
       </AppCard>
-      {summaryLoading ? <FeedbackState status="loading" title="Carregando resumo" /> : null}
-      {!summaryLoading && summaryError ? <YStack><FeedbackState status="error" title="Não foi possível carregar o resumo" description={summaryError} /><Button minH="$touchTarget" onPress={() => session?.access_token && loadSummary(session.access_token)}>Tentar novamente</Button></YStack> : null}
-      {!summaryLoading && !summaryError ? <XStack gap="$3" flexWrap="wrap"><AppCard flex={1} minW={150} title="Pacientes ativos" background="$surface"><SizableText color="$brand" fontFamily="$heading" size="$8">{patients.length}</SizableText></AppCard><AppCard flex={1} minW={150} title="Próximas consultas" background="$surface"><SizableText color="$brand" fontFamily="$heading" size="$8">{appointments.filter((item) => item.state === 'scheduled' && Date.parse(item.startsAt) >= Date.now()).length}</SizableText></AppCard><AppCard flex={1} minW={150} title="Aguardando confirmação" background="$surface"><SizableText color="$brand" fontFamily="$heading" size="$8">{appointments.filter((item) => item.state === 'scheduled' && item.patientResponse === 'pending').length}</SizableText></AppCard></XStack> : null}
-      {!summaryLoading && !summaryError && patients.length === 0 ? <FeedbackState status="empty" title="Seu acompanhamento começa aqui" description="Seus pacientes aparecerão aqui quando estiverem vinculados a você." /> : null}
-      <QuickActions />
+
     </ProfessionalScreen>
   );
 }

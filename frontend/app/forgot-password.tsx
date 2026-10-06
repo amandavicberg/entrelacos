@@ -8,6 +8,7 @@ import { AppInput } from '@/components/app-input';
 import { BrandButton } from '@/components/brand-button';
 import { FeedbackState } from '@/components/feedback-state';
 import { useAuth } from '@/contexts/auth-context';
+import { authErrorMessage, reportAuthError } from '@/lib/auth-errors';
 import { requestPasswordReset } from '@/lib/registration';
 
 const loginPath = '/login' as RelativePathString;
@@ -32,6 +33,7 @@ export default function ForgotPasswordScreen() {
   if (accessState === 'patient-unassociated') return <Redirect href={patientConnectPath} />;
 
   async function submit() {
+    if (submitting) return;
     const normalizedEmail = email.trim().toLowerCase();
     if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
       setError('Informe um e-mail válido.');
@@ -40,13 +42,14 @@ export default function ForgotPasswordScreen() {
 
     setSubmitting(true);
     setError('');
-    const { error: requestError } = await requestPasswordReset(normalizedEmail);
-    setSubmitting(false);
-    if (requestError) {
-      setError('Não foi possível enviar agora. Verifique sua conexão e tente novamente.');
-      return;
-    }
-    setSent(true);
+    try {
+      const { error: requestError } = await requestPasswordReset(normalizedEmail);
+      if (requestError) throw requestError;
+      setSent(true);
+    } catch (cause) {
+      reportAuthError('recovery', cause);
+      setError(authErrorMessage(cause, 'recovery'));
+    } finally { setSubmitting(false); }
   }
 
   return (

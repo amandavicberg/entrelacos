@@ -9,7 +9,11 @@ export function BrandButton(props: BrandButtonProps) {
       bg="$brand"
       color="$brandContrast"
       fontFamily="$heading"
-      minH="$touchTarget"
+      minH="$control"
+      height="auto"
+      py="$3"
+      disabledStyle={{ opacity: 0.55 }}
+      focusVisibleStyle={{ outlineWidth: 2, outlineColor: '$outlineColor', outlineStyle: 'solid' }}
       rounded="$control"
       pressStyle={{ opacity: 0.82 }}
       hoverStyle={{ opacity: 0.92 }}
