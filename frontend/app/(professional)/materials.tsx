@@ -1,6 +1,6 @@
 import * as DocumentPicker from 'expo-document-picker';
-import * as Linking from 'expo-linking';
-import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Button, Paragraph, Progress, SizableText, TextArea, XStack, YStack } from 'tamagui';
 
 import { AppCard } from '@/components/app-card';
@@ -10,6 +10,7 @@ import { BrandButton } from '@/components/brand-button';
 import { FeedbackState } from '@/components/feedback-state';
 import { ProfessionalBrand, ProfessionalScreen } from '@/components/professional/professional-screen';
 import { useAuth } from '@/contexts/auth-context';
+import { openExternalResource } from '@/lib/open-external';
 import { confirmMaterialUpload, createExternalMaterial, getMaterialUrl, listMaterials, listProfessionalPatients, prepareMaterialUpload, shareMaterial, uploadToSignedUrl, type FollowUpMaterial, type FollowUpPatient, type MaterialUsage } from '@/lib/api';
 
 type PickedFile = { uri: string; name: string; mimeType: string; size: number };
@@ -27,7 +28,7 @@ export default function MaterialsScreen() {
   const [kind, setKind] = useState<'ebook' | 'podcast' | 'video'>('ebook'); const [file, setFile] = useState<PickedFile | null>(null);
 
   const load = useCallback(async () => { if (!session?.access_token) return; await Promise.resolve(); setLoading(true); setError(''); try { const [result, patientData] = await Promise.all([listMaterials(session.access_token), listProfessionalPatients(session.access_token)]); setMaterials(result.materials); setUsage(result.usage); setPatients(patientData); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível carregar os materiais.'); } finally { setLoading(false); } }, [session]);
-  useEffect(() => { const timeout = setTimeout(() => { void load(); }, 0); return () => clearTimeout(timeout); }, [load]);
+  useFocusEffect(useCallback(() => { void load(); }, [load]));
 
   async function pickFile() {
     if (saving) return;
@@ -56,7 +57,7 @@ export default function MaterialsScreen() {
     finally { setSaving(false); }
   }
 
-  async function openMaterial(materialId: string) { if (!session?.access_token) return; try { await Linking.openURL(await getMaterialUrl(session.access_token, materialId)); } catch (cause) { setFeedback(cause instanceof Error ? cause.message : 'Material indisponível.'); } }
+  async function openMaterial(materialId: string) { if (!session?.access_token) return; try { await openExternalResource(() => getMaterialUrl(session.access_token, materialId)); } catch (cause) { setFeedback(cause instanceof Error ? cause.message : 'Material indisponível.'); } }
   async function shareWithSelected(materialId: string) { if (!session?.access_token || saving || !selectedPatients.length) return; setSaving(true); setFeedback(''); try { await shareMaterial(session.access_token, materialId, selectedPatients); setFeedback(`Material compartilhado com ${selectedPatients.length} paciente(s).`); } catch (cause) { setFeedback(cause instanceof Error ? cause.message : 'Não foi possível compartilhar.'); } finally { setSaving(false); } }
   function togglePatient(relationshipId: string) { setSelectedPatients((current) => current.includes(relationshipId) ? current.filter((id) => id !== relationshipId) : [...current, relationshipId]); }
   const usagePercent = usage && usage.quotaBytes > 0 ? Math.min(100, (usage.sizeBytes / usage.quotaBytes) * 100) : 0;

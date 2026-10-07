@@ -21,6 +21,7 @@
     },
     "web": {
       "output": "static",
+      "lang": "pt-BR",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [

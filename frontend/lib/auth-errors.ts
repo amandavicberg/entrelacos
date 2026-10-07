@@ -17,7 +17,7 @@ export function authErrorMessage(error: unknown, operation: AuthOperation = 'sig
   if (code === 'signup_disabled' || message.includes('signups not allowed')) return 'Novos cadastros estão temporariamente indisponíveis. Tente novamente mais tarde.';
   if (message.includes('database error')) return 'Encontramos um problema ao preparar seu perfil. Entre em contato com a equipe do EntreLaços.';
   if (message.includes('sending confirmation') || message.includes('smtp')) return 'Não conseguimos enviar a confirmação agora. Tente novamente mais tarde ou entre em contato com a equipe.';
-  if (code === 'weak_password' || code === 'same_password') return 'Escolha uma senha diferente, com pelo menos 8 caracteres, letras e números.';
+  if (code === 'weak_password' || code === 'same_password') return 'Escolha uma senha diferente, com 10 ou mais caracteres, maiúscula, minúscula, número e símbolo.';
   if (code === 'email_address_invalid') return 'Confira o endereço de e-mail e tente novamente.';
   if (code === 'invalid_credentials') return 'E-mail ou senha incorretos. Confira os dados ou recupere sua senha.';
   if (value.name === 'AuthRetryableFetchError' || value.name === 'TypeError' || message.includes('network') || message.includes('fetch') || message.includes('timeout')) {

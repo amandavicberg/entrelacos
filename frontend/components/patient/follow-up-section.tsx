@@ -1,6 +1,5 @@
-import * as Linking from 'expo-linking';
-import { Redirect } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { Redirect, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Button, Paragraph, SizableText, TextArea, XStack, YStack } from 'tamagui';
 
 import { AppCard } from '@/components/app-card';
@@ -8,6 +7,7 @@ import { PatientScreen } from '@/components/patient/patient-screen';
 import { CancellationConfirmation } from '@/components/cancellation-confirmation';
 import { FeedbackState } from '@/components/feedback-state';
 import { useAuth } from '@/contexts/auth-context';
+import { openExternalResource } from '@/lib/open-external';
 import { getMaterialUrl, listAppointments, listMaterials, listPatientObservations, listPatientRelationships, listTimeline, respondToAppointment, type FollowUpAppointment, type FollowUpMaterial, type FollowUpObservation, type TimelineItem } from '@/lib/api';
 
 type Section = 'appointments' | 'observations' | 'timeline' | 'materials';
@@ -29,14 +29,22 @@ export function PatientFollowUpSection({ section }: { section: Section }) {
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível carregar este conteúdo.'); }
     finally { setLoading(false); }
   }, [section, session]);
-  useEffect(() => { const timeout = setTimeout(() => { void load(); }, 0); return () => clearTimeout(timeout); }, [load]);
+  useFocusEffect(useCallback(() => {
+    void load();
+    const timer = setInterval(() => {
+      if (!session?.access_token) return;
+      if (section === 'materials') void listMaterials(session.access_token, true).then((result) => setMaterials(result.materials)).catch(() => {});
+      if (section === 'appointments') void listAppointments(session.access_token, undefined, true).then(setAppointments).catch(() => {});
+    }, 30_000);
+    return () => clearInterval(timer);
+  }, [load, section, session]));
 
   if (accessState !== 'patient-active') return <Redirect href={accessState === 'patient-pending' ? '/(patient)/pending' : '/'} />;
   async function respond(item: FollowUpAppointment, response: 'confirmed' | 'cancelled') { if (!session?.access_token || submitting) return; setSubmitting(item.id); setFeedback(''); try { await respondToAppointment(session.access_token, item.id, response, reasons[item.id]?.trim() || undefined); setCancelId(null); setFeedback(response === 'confirmed' ? 'Consulta confirmada.' : 'Consulta cancelada.'); await load(); } catch (cause) { setFeedback(cause instanceof Error ? cause.message : 'Não foi possível responder.'); } finally { setSubmitting(null); } }
-  async function openMaterial(item: FollowUpMaterial) { if (!session?.access_token) return; try { await Linking.openURL(await getMaterialUrl(session.access_token, item.id, true)); } catch (cause) { setFeedback(cause instanceof Error ? cause.message : 'Material indisponível.'); } }
+  async function openMaterial(item: FollowUpMaterial) { if (!session?.access_token) return; try { await openExternalResource(() => getMaterialUrl(session.access_token, item.id, true)); } catch (cause) { setFeedback(cause instanceof Error ? cause.message : 'Material indisponível.'); } }
 
   const empty = section === 'appointments' ? appointments.length === 0 : section === 'observations' ? observations.length === 0 : section === 'materials' ? materials.length === 0 : timeline.length === 0;
-  return <PatientScreen title={titles[section]} description="Consulte o que foi compartilhado e acompanhe seus próximos passos.">{feedback ? <Paragraph role="alert" color="$brand">{feedback}</Paragraph> : null}{loading ? <FeedbackState status="loading" /> : null}{!loading && error ? <YStack><FeedbackState status="error" description={error} /><Button minH="$touchTarget" onPress={load}>Tentar novamente</Button></YStack> : null}{!loading && !error && empty ? <FeedbackState status="empty" /> : null}
+  return <PatientScreen title={titles[section]} description="Consulte o que foi compartilhado e acompanhe seus próximos passos.">{feedback ? <Paragraph role="alert" color="$brand">{feedback}</Paragraph> : null}{section === 'materials' && !loading ? <Button self="flex-start" minH="$touchTarget" onPress={() => void load()}>Atualizar materiais</Button> : null}{loading ? <FeedbackState status="loading" /> : null}{!loading && error ? <YStack><FeedbackState status="error" description={error} /><Button minH="$touchTarget" onPress={load}>Tentar novamente</Button></YStack> : null}{!loading && !error && empty ? <FeedbackState status="empty" /> : null}
     {!loading && !error && section === 'appointments' ? appointments.map((item) => <AppCard key={item.id} background="$surface"><SizableText color="$color" fontWeight="700">{new Date(item.startsAt).toLocaleString('pt-BR')}</SizableText><Paragraph color="$muted">{item.state === 'cancelled' ? 'Cancelada' : item.patientResponse === 'confirmed' ? 'Confirmada' : 'Aguardando sua confirmação'}</Paragraph>{item.state === 'scheduled' && item.patientResponse === 'pending' ? <YStack gap="$2"><TextArea aria-label="Motivo opcional para cancelamento" placeholder="Motivo do cancelamento (opcional)" maxLength={500} value={reasons[item.id] ?? ''} onChangeText={(value) => setReasons((current) => ({ ...current, [item.id]: value }))} borderColor="$borderColor" /><XStack gap="$2" flexWrap="wrap"><Button minH="$touchTarget" bg="$brand" color="$brandContrast" disabled={Boolean(submitting)} onPress={() => respond(item, 'confirmed')}>Confirmar</Button><Button minH="$touchTarget" bg="$declinedBackground" color="$declinedColor" disabled={Boolean(submitting)} onPress={() => setCancelId(item.id)}>Cancelar</Button></XStack>{cancelId === item.id ? <CancellationConfirmation busy={Boolean(submitting)} onKeep={() => setCancelId(null)} onConfirm={() => void respond(item, 'cancelled')} /> : null}</YStack> : null}</AppCard>) : null}
     {!loading && !error && section === 'observations' ? observations.map((item) => <AppCard key={item.id} background="$surface"><Paragraph color="$color">{item.content}</Paragraph><Paragraph color="$muted" size="$2">{new Date(item.occurredAt).toLocaleString('pt-BR')}</Paragraph></AppCard>) : null}
     {!loading && !error && section === 'materials' ? materials.map((item) => <AppCard key={item.id} background="$surface"><SizableText color="$color" fontWeight="700">{item.title}</SizableText>{item.description ? <Paragraph color="$muted">{item.description}</Paragraph> : null}<Button self="flex-start" minH="$touchTarget" onPress={() => openMaterial(item)}>Abrir material</Button></AppCard>) : null}

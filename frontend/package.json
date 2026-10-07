@@ -10,7 +10,7 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "build": "node scripts/check-public-env.mjs && expo export --platform web",
-    "test": "node --experimental-strip-types --test scripts/*.test.mjs"
+    "test": "node --test scripts/*.test.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/poppins": "^0.4.1",

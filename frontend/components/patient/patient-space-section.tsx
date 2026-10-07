@@ -1,7 +1,6 @@
 import * as DocumentPicker from 'expo-document-picker';
-import * as Linking from 'expo-linking';
-import { Redirect } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { Redirect, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Button, Paragraph, SizableText, TextArea, XStack, YStack } from 'tamagui';
 
 import { AppCard } from '@/components/app-card';
@@ -10,6 +9,7 @@ import { PatientScreen } from '@/components/patient/patient-screen';
 import { BrandButton } from '@/components/brand-button';
 import { FeedbackState } from '@/components/feedback-state';
 import { useAuth } from '@/contexts/auth-context';
+import { openExternalResource } from '@/lib/open-external';
 import { confirmPatientDocumentUpload, createPatientCheckIn, createPatientMessage, getPatientDocumentUrl, listPatientCheckIns, listPatientDocuments, listPatientMessages, listPatientRelationships, preparePatientDocumentUpload, uploadPatientDocument, type PatientCheckIn, type PatientDocument, type PatientMessage, type PatientRelationship } from '@/lib/api';
 
 type Section = 'documents' | 'messages' | 'check-ins';
@@ -41,7 +41,7 @@ export function PatientSpaceSection({ section }: { section: Section }) {
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível carregar este espaço.'); }
     finally { setLoading(false); }
   }, [section, selectedRelationship, session]);
-  useEffect(() => { const timer = setTimeout(() => void load(), 0); return () => clearTimeout(timer); }, [load]);
+  useFocusEffect(useCallback(() => { void load(); }, [load]));
   if (accessState !== 'patient-active') return <Redirect href={accessState === 'patient-pending' ? '/(patient)/pending' : '/'} />;
 
   async function sendMessage() { if (!session?.access_token || !selectedRelationship || !content.trim() || saving) return; setSaving(true); setFeedback(''); try { await createPatientMessage(session.access_token, selectedRelationship, content); setContent(''); setFeedback('Recado adicionado ao mural.'); await load(); } catch (cause) { setFeedback(cause instanceof Error ? cause.message : 'Não foi possível publicar o recado.'); } finally { setSaving(false); } }
@@ -59,7 +59,7 @@ export function PatientSpaceSection({ section }: { section: Section }) {
       setTitle(''); setFeedback('Documento enviado com segurança.'); await load();
     } catch (cause) { setFeedback(cause instanceof Error ? cause.message : 'Não foi possível enviar o documento.'); } finally { setSaving(false); }
   }
-  async function openDocument(document: PatientDocument) { if (!session?.access_token) return; try { await Linking.openURL(await getPatientDocumentUrl(session.access_token, document.id)); } catch (cause) { setFeedback(cause instanceof Error ? cause.message : 'Documento indisponível.'); } }
+  async function openDocument(document: PatientDocument) { if (!session?.access_token) return; try { await openExternalResource(() => getPatientDocumentUrl(session.access_token, document.id)); } catch (cause) { setFeedback(cause instanceof Error ? cause.message : 'Documento indisponível.'); } }
   const empty = section === 'documents' ? documents.length === 0 : section === 'messages' ? messages.length === 0 : checkIns.length === 0;
 
   return <PatientScreen title={titles[section].title} description={titles[section].description}>

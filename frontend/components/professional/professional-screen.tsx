@@ -14,7 +14,7 @@ export function ProfessionalScreen({ children }: PropsWithChildren) {
     <AppScreen p={0}>
       <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ grow: 1 }}>
-          <YStack width="100%" maxW={1000} self="center" p="$5" gap="$5" pb="$7" flex={1}>
+          <YStack width="100%" maxW={1000} self="center" p="$5" gap="$5" pb="$7">
             {children}
           </YStack>
         </ScrollView>
@@ -25,7 +25,7 @@ export function ProfessionalScreen({ children }: PropsWithChildren) {
 
 export function ProfessionalBrand() {
   return (
-    <BrandLogo width={156} />
+    <BrandLogo compact width={64} />
   );
 }
 

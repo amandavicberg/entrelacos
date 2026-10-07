@@ -1,5 +1,6 @@
 import * as Clipboard from 'expo-clipboard';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { Button, H1, Paragraph, SizableText, Spinner, XStack, YStack } from 'tamagui';
 
 import { AppCard } from '@/components/app-card';
@@ -30,11 +31,11 @@ export default function ProfessionalHomeScreen() {
   const [leaving, setLeaving] = useState(false);
   const [exitError, setExitError] = useState(false);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (!session?.access_token) return;
     void loadPendingRelationships(session.access_token);
     void loadSummary(session.access_token);
-  }, [session?.access_token]);
+  }, [session?.access_token]));
 
   async function loadSummary(accessToken: string) {
     setSummaryLoading(true); setSummaryError('');
@@ -124,7 +125,7 @@ export default function ProfessionalHomeScreen() {
       </YStack>
       {summaryLoading ? <FeedbackState status="loading" title="Carregando resumo" /> : null}
       {!summaryLoading && summaryError ? <YStack><FeedbackState status="error" title="Não foi possível carregar o resumo" description={summaryError} /><Button minH="$touchTarget" onPress={() => session?.access_token && loadSummary(session.access_token)}>Tentar novamente</Button></YStack> : null}
-      {!summaryLoading && !summaryError ? <XStack gap="$3" flexWrap="wrap"><AppCard flex={1} minW={150} title="Pacientes ativos" background="$surface"><SizableText color="$brand" fontFamily="$heading" size="$8">{patients.length}</SizableText></AppCard><AppCard flex={1} minW={150} title="Próximas consultas" background="$surface"><SizableText color="$brand" fontFamily="$heading" size="$8">{appointments.filter((item) => item.state === 'scheduled' && Date.parse(item.startsAt) >= Date.now()).length}</SizableText></AppCard><AppCard flex={1} minW={150} title="Aguardando confirmação" background="$surface"><SizableText color="$brand" fontFamily="$heading" size="$8">{appointments.filter((item) => item.state === 'scheduled' && item.patientResponse === 'pending' && Date.parse(item.startsAt) >= Date.now()).length}</SizableText></AppCard></XStack> : null}
+      {!summaryLoading && !summaryError ? <XStack gap="$3" flexWrap="wrap"><AppCard flex={1} minW={150} title="Pacientes ativos" background="$surface"><SizableText color="$brand" fontFamily="$heading" size="$8">{patients.length}</SizableText></AppCard><AppCard flex={1} minW={150} title="Próximas consultas" background="$surface"><SizableText color="$brand" fontFamily="$heading" size="$8">{appointments.filter((item) => item.state === 'scheduled' && Date.parse(item.startsAt) >= Date.now()).length}</SizableText></AppCard><AppCard flex={1} minW={150} title="Consultas sem resposta" background="$surface"><SizableText color="$brand" fontFamily="$heading" size="$8">{appointments.filter((item) => item.state === 'scheduled' && item.patientResponse === 'pending' && Date.parse(item.startsAt) >= Date.now()).length}</SizableText></AppCard><AppCard flex={1} minW={150} title="Vínculos para aprovar" background="$surface"><SizableText color="$brand" fontFamily="$heading" size="$8">{pendingRelationships.length}</SizableText></AppCard></XStack> : null}
       {!summaryLoading && !summaryError && patients.length === 0 ? <FeedbackState status="empty" title="Seu acompanhamento começa aqui" description="Seus pacientes aparecerão aqui quando estiverem vinculados a você." /> : null}
       <QuickActions />
       <ProfileCard state={profile} />

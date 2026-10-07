@@ -388,14 +388,19 @@ export async function listMaterials(request: IncomingMessage, response: ServerRe
   const relationshipIds = await activeRelationshipIds(actor);
   if (!relationshipIds.length) return sendJson(response, 200, { materials: [] });
   const { data, error } = await supabase.from('patient_material_shares')
-    .select('id, relationship_id, shared_at, professional_materials(id, title, description, kind, source, external_url, mime_type, size_bytes, created_at)')
+    .select('id, material_id, relationship_id, shared_at')
     .in('relationship_id', relationshipIds).eq('status', 0).order('shared_at', { ascending: false });
   if (error) databaseFailure('Falha ao listar materiais compartilhados', 'Não foi possível carregar os materiais.', error);
+  const materialIds = [...new Set((data ?? []).map((share) => share.material_id))];
+  if (!materialIds.length) return sendJson(response, 200, { materials: [] });
+  const { data: sourceMaterials, error: materialError } = await supabase.from('professional_materials')
+    .select('id, title, description, kind, source, external_url, mime_type, size_bytes, created_at')
+    .in('id', materialIds).eq('status', 0);
+  if (materialError) databaseFailure('Falha ao carregar materiais compartilhados', 'Não foi possível carregar os materiais.', materialError);
+  const materialsById = new Map((sourceMaterials ?? []).map((material) => [material.id, material]));
   sendJson(response, 200, {
     materials: (data ?? []).flatMap((share) => {
-      const raw = Array.isArray(share.professional_materials)
-        ? share.professional_materials[0]
-        : share.professional_materials;
+      const raw = materialsById.get(share.material_id);
       return raw ? [{ ...materialOutput(raw), shareId: share.id, relationshipId: share.relationship_id }] : [];
     }),
   });

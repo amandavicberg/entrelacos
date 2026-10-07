@@ -7,6 +7,11 @@ import { logDatabaseError, sendJson } from './http.js';
 import { jsonBody, text } from './validation.js';
 
 const inviteLifetimeMs = 7 * 24 * 60 * 60 * 1000;
+const inviteAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+function createInviteCode(): string {
+  return [...randomBytes(10)].map((byte) => inviteAlphabet[byte & 31]).join('');
+}
 
 export async function consumeInvite(request: IncomingMessage, response: ServerResponse): Promise<void> {
   const actor = await authenticate(request, 'patient');
@@ -27,7 +32,7 @@ export async function consumeInvite(request: IncomingMessage, response: ServerRe
 
 export async function generateInvite(request: IncomingMessage, response: ServerResponse): Promise<void> {
   const actor = await authenticate(request, 'professional');
-  const code = randomBytes(8).toString('hex').toUpperCase();
+  const code = createInviteCode();
   const expiresAt = new Date(Date.now() + inviteLifetimeMs).toISOString();
   const { error } = await supabase.from('professional_invites').insert({
     professional_id: actor.id,

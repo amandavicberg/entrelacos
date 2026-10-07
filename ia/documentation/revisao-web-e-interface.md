@@ -33,7 +33,8 @@ Essas configurações remotas não foram modificadas.
 - `frontend/contexts/auth-context.tsx` considera status dos perfis específicos,
   trata retorno de confirmação/recuperação antes de resolver a sessão inicial e
   remove tokens da URL na web. O guard de recuperação não redireciona para a
-  mesma rota continuamente. Sessões web continuam somente em memória.
+  mesma rota continuamente. A revisão posterior da sessão web está em
+  [`feedback-perfil-profissional-2026-10-07.md`](feedback-perfil-profissional-2026-10-07.md).
 - Paciente autenticado sem vínculo pode entrar na etapa de convite. Somente
   associação ativa libera as rotas de acompanhamento; associação pendente fica
   na tela de espera. Guards não substituem autorização do backend e RLS.

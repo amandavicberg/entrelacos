@@ -39,6 +39,7 @@ function ProfessionalTabs() {
           tabBarIcon: ({ focused, color }) => <Ionicons name={focused ? selected : icon} color={color} size={22} accessible={false} />,
         }} />
       ))}
+      <Tabs.Screen name="patients/[relationshipId]" options={{ href: null }} />
     </Tabs>
   );
 }

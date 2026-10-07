@@ -1,6 +1,5 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import * as Linking from 'expo-linking';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Button, Paragraph, SizableText, TextArea, XStack, YStack } from 'tamagui';
 
 import { CancellationConfirmation } from '@/components/cancellation-confirmation';
@@ -11,6 +10,8 @@ import { BrandButton } from '@/components/brand-button';
 import { FeedbackState } from '@/components/feedback-state';
 import { ProfessionalBrand, ProfessionalScreen } from '@/components/professional/professional-screen';
 import { useAuth } from '@/contexts/auth-context';
+import { formatLocalDateTime, maskLocalDateTime, parseLocalDateTime } from '@/lib/date-time-input';
+import { openExternalResource } from '@/lib/open-external';
 import {
   cancelProfessionalAppointment,
   createAppointment,
@@ -38,10 +39,7 @@ import {
   type TimelineItem,
 } from '@/lib/api';
 
-const localDateTime = (date = new Date()) => {
-  const offset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
-};
+const localDateTime = (date = new Date()) => formatLocalDateTime(date);
 const initialAppointmentStart = localDateTime(new Date(Date.now() + 86_400_000));
 const initialAppointmentEnd = localDateTime(new Date(Date.now() + 90_000_000));
 
@@ -65,6 +63,7 @@ export default function PatientDetailScreen() {
   const [checkIns, setCheckIns] = useState<PatientCheckIn[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [loadWarning, setLoadWarning] = useState('');
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [content, setContent] = useState('');
@@ -80,10 +79,11 @@ export default function PatientDetailScreen() {
     if (!session?.access_token || !relationshipId) return;
     await Promise.resolve();
     setLoading(true);
-    setError('');
+    setError(''); setLoadWarning('');
     try {
-      const [patientData, observationData, appointmentData, timelineData, materialData, documentData, messageData, checkInData] = await Promise.all([
-        getProfessionalPatient(session.access_token, relationshipId),
+      const patientData = await getProfessionalPatient(session.access_token, relationshipId);
+      setPatient(patientData);
+      const results = await Promise.allSettled([
         listProfessionalObservations(session.access_token, relationshipId),
         listAppointments(session.access_token, relationshipId),
         listTimeline(session.access_token, relationshipId),
@@ -92,24 +92,35 @@ export default function PatientDetailScreen() {
         listPatientMessages(session.access_token, relationshipId),
         listPatientCheckIns(session.access_token, relationshipId),
       ]);
-      setPatient(patientData);
-      setObservations(observationData);
-      setAppointments(appointmentData);
-      setTimeline(timelineData);
-      setMaterials(materialData.materials);
-      setDocuments(documentData); setPatientMessages(messageData); setCheckIns(checkInData);
+      const [observationData, appointmentData, timelineData, materialData, documentData, messageData, checkInData] = results;
+      if (observationData.status === 'fulfilled') setObservations(observationData.value);
+      if (appointmentData.status === 'fulfilled') setAppointments(appointmentData.value);
+      if (timelineData.status === 'fulfilled') setTimeline(timelineData.value);
+      if (materialData.status === 'fulfilled') setMaterials(materialData.value.materials);
+      if (documentData.status === 'fulfilled') setDocuments(documentData.value);
+      if (messageData.status === 'fulfilled') setPatientMessages(messageData.value);
+      if (checkInData.status === 'fulfilled') setCheckIns(checkInData.value);
+      if (results.some((result) => result.status === 'rejected')) setLoadWarning('Parte do acompanhamento não pôde ser carregada. Tente atualizar os dados.');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível carregar o acompanhamento.');
     } finally { setLoading(false); }
   }, [relationshipId, session]);
 
-  useEffect(() => { const timeout = setTimeout(() => { void load(); }, 0); return () => clearTimeout(timeout); }, [load]);
+  useFocusEffect(useCallback(() => {
+    void load();
+    const timer = setInterval(() => {
+      if (!session?.access_token || !relationshipId) return;
+      void listAppointments(session.access_token, relationshipId).then(setAppointments).catch(() => {});
+      void listPatientDocuments(session.access_token, relationshipId).then(setDocuments).catch(() => {});
+    }, 30_000);
+    return () => clearInterval(timer);
+  }, [load, relationshipId, session]));
 
   async function saveObservation() {
     if (!session?.access_token || !relationshipId || saving || !content.trim()) return;
     setSaving(true); setFeedback('');
     try {
-      const input = { content, visibility, occurredAt: new Date(occurredAt).toISOString() };
+      const input = { content, visibility, occurredAt: parseLocalDateTime(occurredAt).toISOString() };
       if (editingObservation) await correctProfessionalObservation(session.access_token, relationshipId, editingObservation, input);
       else await createProfessionalObservation(session.access_token, relationshipId, input);
       setContent(''); setEditingObservation(null); setVisibility('professional'); setOccurredAt(localDateTime());
@@ -123,7 +134,8 @@ export default function PatientDetailScreen() {
     if (!session?.access_token || !relationshipId || saving) return;
     setSaving(true); setFeedback('');
     try {
-      const start = new Date(startsAt).toISOString(); const end = new Date(endsAt).toISOString();
+      const start = parseLocalDateTime(startsAt).toISOString(); const end = parseLocalDateTime(endsAt).toISOString();
+      if (Date.parse(end) <= Date.parse(start)) throw new Error('O término deve ser posterior ao início.');
       if (editingAppointment) await rescheduleAppointment(session.access_token, relationshipId, editingAppointment, start, end);
       else await createAppointment(session.access_token, relationshipId, start, end);
       setEditingAppointment(null); setFeedback(editingAppointment ? 'Consulta reagendada.' : 'Consulta criada.');
@@ -157,7 +169,7 @@ export default function PatientDetailScreen() {
   }
   async function openDocument(document: PatientDocument) {
     if (!session?.access_token) return;
-    try { await Linking.openURL(await getPatientDocumentUrl(session.access_token, document.id, false)); }
+    try { await openExternalResource(() => getPatientDocumentUrl(session.access_token, document.id, false)); }
     catch (cause) { setFeedback(cause instanceof Error ? cause.message : 'Não foi possível abrir o documento.'); }
   }
 
@@ -168,14 +180,16 @@ export default function PatientDetailScreen() {
     <ProfessionalScreen>
       <ProfessionalBrand />
       <Button self="flex-start" chromeless color="$brand" minH="$touchTarget" onPress={() => router.replace('/(professional)/patients')}>Voltar aos pacientes</Button>
-      <AppHeader eyebrow="ACOMPANHAMENTO ATIVO" title={patient.patientName} description="Observações, agenda, histórico e materiais deste vínculo." />
+      <YStack shrink={0}><AppHeader eyebrow="ACOMPANHAMENTO ATIVO" title={patient.patientName} description="Observações, agenda, histórico e materiais deste vínculo." /></YStack>
+      {loadWarning ? <YStack gap="$2"><Paragraph role="alert" color="$declinedColor">{loadWarning}</Paragraph><Button self="flex-start" minH="$touchTarget" onPress={() => void load()}>Atualizar dados</Button></YStack> : null}
       {feedback ? <Paragraph role="alert" color="$brand">{feedback}</Paragraph> : null}
 
-      <XStack gap="$2" flexWrap="wrap" role="group" aria-label="Seções do acompanhamento">
+      <XStack gap="$2" flexWrap="wrap" shrink={0} role="group" aria-label="Seções do acompanhamento">
         {[['observations', 'Observações'], ['appointments', 'Agenda'], ['patient', 'Registros do paciente'], ['materials', 'Materiais'], ['history', 'Histórico'], ['birthday', 'Aniversário']].map(([value, label]) => (
           <Button key={value} minH="$touchTarget" bg={section === value ? '$brand' : '$soft'} color={section === value ? '$brandContrast' : '$color'} aria-pressed={section === value} onPress={() => setSection(value)}>{label}</Button>
         ))}
       </XStack>
+      <Button self="flex-start" chromeless color="$brand" minH="$touchTarget" onPress={() => void load()}>Atualizar acompanhamento</Button>
       {section === 'birthday' ? <>      <AppCard title="Mensagem de aniversário" background="$surface" rounded="$panel">
         <YStack gap="$3"><Paragraph color="$muted">Opcional. Se não houver personalização, o paciente verá a mensagem padrão no aniversário.</Paragraph><TextArea aria-label="Mensagem de aniversário para o paciente" value={birthdayContent} onChangeText={setBirthdayContent} placeholder="Escreva uma mensagem acolhedora" maxLength={1000} minH={100} borderColor="$borderColor" /><BrandButton disabled={saving || !birthdayContent.trim()} onPress={() => void saveBirthday()}>{saving ? 'Salvando…' : 'Salvar mensagem'}</BrandButton></YStack>
       </AppCard>
@@ -186,7 +200,7 @@ export default function PatientDetailScreen() {
         <YStack gap="$3">
           <SizableText color="$muted" size="$2">Observações são privadas por padrão.</SizableText>
           <TextArea aria-label="Conteúdo da observação" value={content} onChangeText={setContent} placeholder="Registre somente o necessário para o acompanhamento" minH={110} maxLength={5000} borderColor="$borderColor" />
-          <AppInput label="Data e hora" value={occurredAt} onChangeText={setOccurredAt} placeholder="AAAA-MM-DDTHH:mm" />
+          <AppInput label="Data e hora da observação" value={occurredAt} onChangeText={(value) => setOccurredAt(maskLocalDateTime(value))} placeholder="DD/MM/AAAA HH:mm" keyboardType="numeric" /><Paragraph color="$muted" size="$2">Exemplo: 25/12/2026 14:30</Paragraph>
           <XStack gap="$2" flexWrap="wrap" accessibilityRole="radiogroup">
             <Button minH="$touchTarget" flex={1} minW={160} bg={visibility === 'professional' ? '$brand' : '$soft'} color={visibility === 'professional' ? '$brandContrast' : '$color'} onPress={() => setVisibility('professional')} accessibilityState={{ selected: visibility === 'professional' }}>Somente profissional</Button>
             <Button minH="$touchTarget" flex={1} minW={160} bg={visibility === 'patient' ? '$brand' : '$soft'} color={visibility === 'patient' ? '$brandContrast' : '$color'} onPress={() => setVisibility('patient')} accessibilityState={{ selected: visibility === 'patient' }}>Compartilhar com paciente</Button>
@@ -208,7 +222,7 @@ export default function PatientDetailScreen() {
       </> : null}
       {section === 'appointments' ? <>
       <AppCard title={editingAppointment ? 'Reagendar consulta' : 'Nova consulta'} background="$surface" rounded="$panel">
-        <YStack gap="$3"><AppInput label="Início" value={startsAt} onChangeText={setStartsAt} placeholder="AAAA-MM-DDTHH:mm" /><AppInput label="Término" value={endsAt} onChangeText={setEndsAt} placeholder="AAAA-MM-DDTHH:mm" /><XStack gap="$2" flexWrap="wrap"><BrandButton disabled={saving} onPress={saveAppointment}>{editingAppointment ? 'Salvar reagendamento' : 'Criar consulta'}</BrandButton>{editingAppointment ? <Button minH="$touchTarget" onPress={() => setEditingAppointment(null)}>Cancelar edição</Button> : null}</XStack></YStack>
+        <YStack gap="$3"><Paragraph color="$muted" size="$2">Use dia/mês/ano e horário de 24 horas. Exemplo: 25/12/2026 14:30.</Paragraph><AppInput label="Data e hora de início" value={startsAt} onChangeText={(value) => setStartsAt(maskLocalDateTime(value))} placeholder="DD/MM/AAAA HH:mm" keyboardType="numeric" /><AppInput label="Data e hora de término" value={endsAt} onChangeText={(value) => setEndsAt(maskLocalDateTime(value))} placeholder="DD/MM/AAAA HH:mm" keyboardType="numeric" /><XStack gap="$2" flexWrap="wrap"><BrandButton disabled={saving} onPress={saveAppointment}>{editingAppointment ? 'Salvar reagendamento' : 'Criar consulta'}</BrandButton>{editingAppointment ? <Button minH="$touchTarget" onPress={() => setEditingAppointment(null)}>Cancelar edição</Button> : null}</XStack></YStack>
       </AppCard>
 
       <AppCard title="Agenda deste paciente" background="$surface" rounded="$panel">

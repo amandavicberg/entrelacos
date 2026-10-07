@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import { activeRelationship, authenticate, HttpError, type Actor } from './auth.js';
+import { isBirthdayInBrazil } from './birthday.js';
 import { supabase } from './config/supabase.js';
 import { logDatabaseError, sendJson } from './http.js';
 import { jsonBody, pagination, text, uuid } from './validation.js';
@@ -137,9 +138,9 @@ export async function createPatientCheckIn(request: IncomingMessage, response: S
 export async function getBirthdayMessage(request: IncomingMessage, response: ServerResponse): Promise<void> {
   const actor = await authenticate(request, 'patient');
   const { data: profile, error: profileError } = await supabase.from('patient_profiles').select('birth_date').eq('id', actor.id).eq('status', 0).maybeSingle();
-  if (profileError || !profile?.birth_date) return sendJson(response, 200, { isBirthday: false });
-  const birth = new Date(`${profile.birth_date}T12:00:00`); const now = new Date();
-  if (birth.getUTCMonth() !== now.getMonth() || birth.getUTCDate() !== now.getDate()) return sendJson(response, 200, { isBirthday: false });
+  if (profileError) failure('Falha ao consultar data de nascimento', 'Não foi possível carregar a mensagem de aniversário.', profileError);
+  if (!profile?.birth_date) return sendJson(response, 200, { isBirthday: false });
+  if (!isBirthdayInBrazil(profile.birth_date)) return sendJson(response, 200, { isBirthday: false });
   const { data: relationships, error } = await supabase.from('patient_professional_relationships').select('id').eq('patient_id', actor.id).eq('relationship_status', 'active').eq('status', 0);
   if (error) failure('Falha ao consultar aniversário', 'Não foi possível carregar a mensagem de aniversário.', error);
   const ids = (relationships ?? []).map((item) => item.id);

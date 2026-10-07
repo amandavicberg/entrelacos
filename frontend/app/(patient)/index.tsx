@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect, type RelativePathString, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { Redirect, type RelativePathString, useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Modal, Pressable, ScrollView } from 'react-native';
 import { Button, Card, Paragraph, Separator, SizableText, useTheme, XStack, YStack } from 'tamagui';
 
@@ -44,25 +44,36 @@ export default function PatientHomeScreen() {
   const [summaryError, setSummaryError] = useState('');
   const [leaving, setLeaving] = useState(false);
   const [birthdayMessage, setBirthdayMessage] = useState<string | null>(null);
+  const [birthdayError, setBirthdayError] = useState(false);
 
   const loadSummary = useCallback(async () => {
     if (!session?.access_token) return;
     setSummaryLoading(true); setSummaryError('');
     try {
-      const [appointmentData, observationData, materialData, birthdayData] = await Promise.all([
-        listAppointments(session.access_token, undefined, true), listPatientObservations(session.access_token), listMaterials(session.access_token, true), getBirthdayMessage(session.access_token),
+      const [appointmentData, observationData, materialData] = await Promise.all([
+        listAppointments(session.access_token, undefined, true), listPatientObservations(session.access_token), listMaterials(session.access_token, true),
       ]);
       setAppointments(appointmentData); setObservations(observationData); setMaterials(materialData.materials);
-      setBirthdayMessage(birthdayData.isBirthday ? birthdayData.message ?? 'Feliz aniversário! Que seu novo ciclo seja leve, acolhedor e cheio de boas possibilidades.' : null);
     } catch (cause) {
       setSummaryError(cause instanceof Error ? cause.message : 'Não foi possível carregar o resumo do acompanhamento.');
     } finally { setSummaryLoading(false); }
   }, [session]);
 
-  useEffect(() => {
-    const timeout = setTimeout(() => void loadSummary(), 0);
-    return () => clearTimeout(timeout);
-  }, [loadSummary]);
+  const loadBirthday = useCallback(async () => {
+    if (!session?.access_token) return;
+    try {
+      const data = await getBirthdayMessage(session.access_token);
+      setBirthdayError(false);
+      setBirthdayMessage(data.isBirthday ? data.message ?? 'Feliz aniversário! Que seu novo ciclo seja leve, acolhedor e cheio de boas possibilidades.' : null);
+    } catch { setBirthdayError(true); }
+  }, [session]);
+
+  useFocusEffect(useCallback(() => {
+    void loadSummary();
+    void loadBirthday();
+    const timer = setInterval(() => { void loadBirthday(); }, 5 * 60_000);
+    return () => clearInterval(timer);
+  }, [loadBirthday, loadSummary]));
 
   if (accessState === 'patient-pending') return <Redirect href="/(patient)/pending" />;
   if (accessState === 'patient-unassociated') return <Redirect href={'/(patient)/connect' as RelativePathString} />;
@@ -101,6 +112,7 @@ export default function PatientHomeScreen() {
           </AppCard>
 
           {birthdayMessage ? <AppCard title="Feliz aniversário!"><Paragraph color="$color">{birthdayMessage}</Paragraph></AppCard> : null}
+          {birthdayError ? <AppCard title="Mensagem especial indisponível"><Paragraph color="$muted">Não foi possível consultar a mensagem de aniversário agora.</Paragraph><Button self="flex-start" minH="$touchTarget" onPress={() => void loadBirthday()}>Tentar novamente</Button></AppCard> : null}
 
           <YStack gap="$3">
             <XStack items="center" justify="space-between" gap="$3"><SizableText size="$6" color="$color" fontWeight="700">Acesso rápido</SizableText><Button chromeless color="$brand" minH="$touchTarget" onPress={() => setMenuVisible(true)}>Ver menu</Button></XStack>

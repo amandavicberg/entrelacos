@@ -1,5 +1,5 @@
-import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Button, Paragraph, SizableText, YStack } from 'tamagui';
 
 import { AppCard } from '@/components/app-card';
@@ -29,7 +29,11 @@ export default function AgendaScreen() {
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível carregar a agenda.'); }
     finally { setLoading(false); }
   }, [session]);
-  useEffect(() => { const timeout = setTimeout(() => { void load(); }, 0); return () => clearTimeout(timeout); }, [load]);
+  useFocusEffect(useCallback(() => {
+    void load();
+    const timer = setInterval(() => { if (session?.access_token) void listAppointments(session.access_token).then(setItems).catch(() => {}); }, 30_000);
+    return () => clearInterval(timer);
+  }, [load, session]));
 
   return <ProfessionalScreen>
     <ProfessionalBrand />
