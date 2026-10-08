@@ -2,6 +2,8 @@
 
 O painel e a ficha atuais foram revisados depois desta rodada; consulte
 [`painel-e-perfil-profissional.md`](painel-e-perfil-profissional.md).
+O roteiro de reteste após a publicação está em
+[`roteiro-reteste-profissional-gustavo.md`](roteiro-reteste-profissional-gustavo.md).
 
 Atualizado em 2026-10-07. Implementado na `main`. Esta revisão reutiliza as tabelas e os endpoints existentes: `professional_invites`, `patient_professional_relationships`, `professional_birthday_messages`, `professional_materials`, `patient_material_shares`, `patient_documents`, observações e consultas. Nenhuma migration foi criada ou aplicada. O frontend usa a chave pública; convites, compartilhamentos e URLs assinadas continuam sob autenticação e autorização do backend.
 
