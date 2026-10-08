@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect, type RelativePathString } from 'expo-router';
+import { Redirect, type RelativePathString, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { getTokens, Paragraph, SizableText, Spinner, useTheme, XStack, YStack } from 'tamagui';
 
@@ -15,11 +15,14 @@ const patientPendingPath = '/(patient)/pending' as RelativePathString;
 
 export default function PatientConnectScreen() {
   const { accessState, refreshAccess, session, signOut } = useAuth();
+  const router = useRouter();
   const theme = useTheme();
   const tokens = getTokens();
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const [signOutError, setSignOutError] = useState('');
 
   if (accessState === 'loading') return <FeedbackState status="loading" title="Validando acesso" />;
   if (accessState === 'patient-active') return <Redirect href={patientPath} />;
@@ -43,6 +46,14 @@ export default function PatientConnectScreen() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function handleSignOut() {
+    if (leaving) return;
+    setLeaving(true); setSignOutError('');
+    try { await signOut(); router.replace('/login'); }
+    catch { setSignOutError('Não foi possível sair da conta. Tente novamente.'); }
+    finally { setLeaving(false); }
   }
 
   return (
@@ -75,8 +86,9 @@ export default function PatientConnectScreen() {
         <BrandButton size="$5" minH={54} disabled={submitting} onPress={submit} style={{ borderRadius: tokens.radius.$5.val }}>
           {submitting ? <XStack items="center" gap="$2"><Spinner color="$brandContrast" size="small" /><SizableText color="$brandContrast">Enviando...</SizableText></XStack> : 'Enviar solicitação'}
         </BrandButton>
-        <BrandButton chromeless borderWidth={1} borderColor="$brand" color="$brand" minH={50} onPress={signOut} disabled={submitting} style={{ borderRadius: tokens.radius.$5.val }}>
-          Sair da conta
+        {signOutError ? <Paragraph role="alert" color="$red10">{signOutError}</Paragraph> : null}
+        <BrandButton chromeless borderWidth={1} borderColor="$brand" color="$brand" minH={50} onPress={() => void handleSignOut()} disabled={submitting || leaving} style={{ borderRadius: tokens.radius.$5.val }}>
+          {leaving ? 'Saindo…' : 'Sair da conta'}
         </BrandButton>
       </YStack>
     </AuthScreen>

@@ -81,6 +81,7 @@ export const tamaguiConfig = createTamagui({
     light: { ...defaultConfig.themes.light, ...entrelacosLightColors },
     dark: { ...defaultConfig.themes.dark, ...entrelacosDarkColors },
     light_login: { ...defaultConfig.themes.light, ...entrelacosLightColors },
+    light_patient: { ...defaultConfig.themes.light, ...entrelacosLightColors },
     light_professional: { ...defaultConfig.themes.light, ...entrelacosLightColors },
     dark_professional: { ...defaultConfig.themes.dark, ...entrelacosDarkColors },
   },

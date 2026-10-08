@@ -6,7 +6,9 @@ function getApiUrl(): string {
   return url.replace(/\/$/, '');
 }
 
-const apiTimeoutMs = 15_000;
+// A primeira requisição pode acordar a API hospedada; mantenha a espera limitada,
+// mas longa o bastante para que o conteúdo não pareça desaparecer após um cold start.
+const apiTimeoutMs = 60_000;
 
 async function fetchApi(url: string, init: RequestInit): Promise<Response> {
   const controller = new AbortController();
@@ -145,7 +147,7 @@ export type ProfessionalActivity = {
 };
 export type AvailabilityWindow = { id: string; weekday: number; startMinute: number; endMinute: number; slotMinutes: number };
 export type AvailableSlot = { startsAt: string; endsAt: string };
-export type FollowUpMaterial = { id: string; title: string; description: string | null; kind: 'ebook' | 'podcast' | 'video' | 'pdf' | 'audio' | 'other'; source: 'external' | 'storage'; externalUrl: string | null; mimeType: string | null; sizeBytes: number | null; createdAt: string; relationshipId?: string };
+export type FollowUpMaterial = { id: string; title: string; description: string | null; kind: 'ebook' | 'podcast' | 'video' | 'pdf' | 'audio' | 'other'; source: 'external' | 'storage'; externalUrl: string | null; mimeType: string | null; sizeBytes: number | null; createdAt: string; shareId?: string; relationshipId?: string };
 export type TimelineItem = { id: string; type: 'observation' | 'appointment' | 'material'; at: string; label: string; content?: string };
 export type MaterialUsage = { count: number; sizeBytes: number; quotaBytes: number };
 export type PatientRelationship = { relationshipId: string; professionalName: string; approvedAt: string | null };
@@ -281,9 +283,20 @@ export async function listPatientRelationships(accessToken: string): Promise<Pat
   return (await requestJson<{ relationships: PatientRelationship[] }>('/v1/patient/relationships', accessToken)).relationships;
 }
 
+async function listAllPatientPages<T>(path: string, accessToken: string, key: string): Promise<T[]> {
+  const pageSize = 100;
+  const items: T[] = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const result = await requestJson<Record<string, T[]>>(`${path}?limit=${pageSize}&offset=${offset}`, accessToken);
+    const page = result[key];
+    items.push(...page);
+    if (page.length < pageSize) return items;
+  }
+}
+
 export async function listPatientDocuments(accessToken: string, relationshipId?: string): Promise<PatientDocument[]> {
   const path = relationshipId ? `/v1/professional/patients/${relationshipId}/documents` : '/v1/patient/documents';
-  return (await requestJson<{ documents: PatientDocument[] }>(path, accessToken)).documents;
+  return listAllPatientPages<PatientDocument>(path, accessToken, 'documents');
 }
 
 export async function preparePatientDocumentUpload(accessToken: string, input: { relationshipId: string; fileName: string; mimeType: string; sizeBytes: number }): Promise<PatientDocumentUpload> {
@@ -308,7 +321,7 @@ export async function getPatientDocumentUrl(accessToken: string, documentId: str
 
 export async function listPatientMessages(accessToken: string, relationshipId?: string): Promise<PatientMessage[]> {
   const path = relationshipId ? `/v1/professional/patients/${relationshipId}/messages` : '/v1/patient/messages';
-  return (await requestJson<{ messages: PatientMessage[] }>(path, accessToken)).messages;
+  return listAllPatientPages<PatientMessage>(path, accessToken, 'messages');
 }
 
 export async function createPatientMessage(accessToken: string, relationshipId: string, content: string): Promise<void> {
@@ -317,7 +330,7 @@ export async function createPatientMessage(accessToken: string, relationshipId: 
 
 export async function listPatientCheckIns(accessToken: string, relationshipId?: string): Promise<PatientCheckIn[]> {
   const path = relationshipId ? `/v1/professional/patients/${relationshipId}/check-ins` : '/v1/patient/check-ins';
-  return (await requestJson<{ checkIns: PatientCheckIn[] }>(path, accessToken)).checkIns;
+  return listAllPatientPages<PatientCheckIn>(path, accessToken, 'checkIns');
 }
 
 export async function createPatientCheckIn(accessToken: string, relationshipId: string, feeling: PatientCheckIn['feeling'], note?: string): Promise<void> {

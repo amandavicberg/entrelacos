@@ -1,9 +1,9 @@
 import type { AppRole } from './registration.types';
 
-export const passwordHint = 'Use 10 ou mais caracteres com maiúscula, minúscula, número e símbolo.';
+export const passwordHint = 'Use 10 ou mais caracteres (sem contar espaços), com maiúscula, minúscula, número e símbolo.';
 
 export function passwordError(password: string): string | null {
-  if (password.length < 10 || !/[a-z]/.test(password) || !/[A-Z]/.test(password)
+  if (password.replace(/\s/g, '').length < 10 || !/[a-z]/.test(password) || !/[A-Z]/.test(password)
     || !/[0-9]/.test(password) || !/[^A-Za-z0-9\s]/.test(password)) return passwordHint;
   return null;
 }

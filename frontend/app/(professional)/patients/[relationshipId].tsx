@@ -75,6 +75,7 @@ export default function PatientDetailScreen() {
   const [timeline, setTimeline] = useState<TimelineItem[]>([]);
   const [materials, setMaterials] = useState<FollowUpMaterial[]>([]);
   const [documents, setDocuments] = useState<PatientDocument[]>([]);
+  const [documentError, setDocumentError] = useState(false);
   const [patientMessages, setPatientMessages] = useState<PatientMessage[]>([]);
   const [checkIns, setCheckIns] = useState<PatientCheckIn[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,7 +115,8 @@ export default function PatientDetailScreen() {
       if (appointmentData.status === 'fulfilled') setAppointments(appointmentData.value);
       if (timelineData.status === 'fulfilled') setTimeline(timelineData.value);
       if (materialData.status === 'fulfilled') setMaterials(materialData.value.materials);
-      if (documentData.status === 'fulfilled') setDocuments(documentData.value);
+      if (documentData.status === 'fulfilled') { setDocuments(documentData.value); setDocumentError(false); }
+      else setDocumentError(true);
       if (messageData.status === 'fulfilled') setPatientMessages(messageData.value);
       if (checkInData.status === 'fulfilled') setCheckIns(checkInData.value);
       if (results.some((result) => result.status === 'rejected')) setLoadWarning('Parte do acompanhamento não pôde ser carregada. Tente atualizar os dados.');
@@ -128,7 +130,9 @@ export default function PatientDetailScreen() {
     const timer = setInterval(() => {
       if (!session?.access_token || !relationshipId) return;
       void listAppointments(session.access_token, relationshipId).then(setAppointments).catch(() => {});
-      void listPatientDocuments(session.access_token, relationshipId).then(setDocuments).catch(() => {});
+      void listPatientDocuments(session.access_token, relationshipId)
+        .then((data) => { setDocuments(data); setDocumentError(false); })
+        .catch(() => setDocumentError(true));
     }, 30_000);
     return () => clearInterval(timer);
   }, [load, relationshipId, session]));
@@ -306,7 +310,7 @@ export default function PatientDetailScreen() {
       </> : null}
       {section === 'patient' ? <>
       <YStack gap="$1"><SizableText color="$color" fontWeight="700" fontSize={20}>Registros do paciente</SizableText><Paragraph color="$muted" size="$2">Documentos, recados e check-ins compartilhados neste vínculo.</Paragraph></YStack>
-      <AppCard title={`Documentos · ${documents.length}`} background="$surface" rounded="$panel" p="$5"><YStack gap="$3">{documents.length === 0 ? <Paragraph color="$muted">Nenhum PDF enviado ainda.</Paragraph> : documents.map((item) => <XStack key={item.id} gap="$3" items="center" flexWrap="wrap" p="$3" bg="$background" rounded="$control" borderWidth={1} borderColor="$borderColor"><YStack width={44} height={44} items="center" justify="center" bg="$soft" rounded="$control"><Ionicons name="document-attach-outline" size={22} color={theme.brand.val} accessible={false} /></YStack><YStack flex={1} minW={180}><SizableText color="$color" fontWeight="700">{item.title}</SizableText><Paragraph color="$muted" size="$2">{new Date(item.createdAt).toLocaleString('pt-BR')}</Paragraph></YStack><Button minH="$touchTarget" bg="$soft" color="$brand" onPress={() => void openDocument(item)}>Abrir PDF</Button></XStack>)}</YStack></AppCard>
+      <AppCard title={`Documentos · ${documents.length}`} background="$surface" rounded="$panel" p="$5"><YStack gap="$3">{documentError ? <YStack gap="$2"><Paragraph role="alert" color="$red10">Não foi possível carregar os documentos deste paciente.</Paragraph><Button self="flex-start" minH="$touchTarget" onPress={() => void load(true)}>Tentar novamente</Button></YStack> : null}{!documentError && documents.length === 0 ? <Paragraph color="$muted">Nenhum PDF enviado ainda.</Paragraph> : documents.map((item) => <XStack key={item.id} gap="$3" items="center" flexWrap="wrap" p="$3" bg="$background" rounded="$control" borderWidth={1} borderColor="$borderColor"><YStack width={44} height={44} items="center" justify="center" bg="$soft" rounded="$control"><Ionicons name="document-attach-outline" size={22} color={theme.brand.val} accessible={false} /></YStack><YStack flex={1} minW={180}><SizableText color="$color" fontWeight="700">{item.title}</SizableText><Paragraph color="$muted" size="$2">{new Date(item.createdAt).toLocaleString('pt-BR')}</Paragraph></YStack><Button minH="$touchTarget" bg="$soft" color="$brand" onPress={() => void openDocument(item)}>Abrir PDF</Button></XStack>)}</YStack></AppCard>
 
       <AppCard title={`Recados para a próxima sessão · ${patientMessages.length}`} background="$surface" rounded="$panel" p="$5"><YStack gap="$3">{patientMessages.length === 0 ? <Paragraph color="$muted">Nenhum recado deixado pelo paciente.</Paragraph> : patientMessages.map((item) => <YStack key={item.id} gap="$2" p="$3" bg="$background" rounded="$control" borderWidth={1} borderColor="$borderColor"><Paragraph color="$color">{item.content}</Paragraph><Paragraph color="$muted" size="$2">{new Date(item.createdAt).toLocaleString('pt-BR')}</Paragraph></YStack>)}</YStack></AppCard>
 

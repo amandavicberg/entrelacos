@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect, type RelativePathString } from 'expo-router';
+import { Redirect, type RelativePathString, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { getTokens, Paragraph, SizableText, useTheme, XStack, YStack } from 'tamagui';
 
 import { AuthScreen } from '@/components/auth-screen';
@@ -11,8 +12,19 @@ const patientConnectPath = '/(patient)/connect' as RelativePathString;
 
 export default function PatientPendingScreen() {
   const { accessState, refreshAccess, signOut } = useAuth();
+  const router = useRouter();
   const theme = useTheme();
   const tokens = getTokens();
+  const [leaving, setLeaving] = useState(false);
+  const [signOutError, setSignOutError] = useState('');
+
+  async function handleSignOut() {
+    if (leaving) return;
+    setLeaving(true); setSignOutError('');
+    try { await signOut(); router.replace('/login'); }
+    catch { setSignOutError('Não foi possível sair da conta. Tente novamente.'); }
+    finally { setLeaving(false); }
+  }
 
   if (accessState === 'patient-active') return <Redirect href={patientPath} />;
   if (accessState === 'patient-unassociated') return <Redirect href={patientConnectPath} />;
@@ -35,8 +47,9 @@ export default function PatientPendingScreen() {
         <BrandButton size="$5" minH={54} onPress={refreshAccess} style={{ borderRadius: tokens.radius.$5.val }}>
           Verificar novamente
         </BrandButton>
-        <BrandButton chromeless borderWidth={1} borderColor="$brand" color="$brand" minH={50} onPress={signOut} style={{ borderRadius: tokens.radius.$5.val }}>
-          Sair da conta
+        {signOutError ? <Paragraph role="alert" color="$red10">{signOutError}</Paragraph> : null}
+        <BrandButton chromeless borderWidth={1} borderColor="$brand" color="$brand" minH={50} onPress={() => void handleSignOut()} disabled={leaving} style={{ borderRadius: tokens.radius.$5.val }}>
+          {leaving ? 'Saindo…' : 'Sair da conta'}
         </BrandButton>
       </YStack>
     </AuthScreen>

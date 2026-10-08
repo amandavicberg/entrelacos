@@ -183,7 +183,7 @@ function LoginContent() {
 
         <YStack gap="$4">
           <AppInput
-            appearance="outlined"
+            appearance="filled"
             label="E-mail"
             placeholder="seuemail@exemplo.com"
             value={email}
@@ -202,7 +202,7 @@ function LoginContent() {
 
           <YStack gap="$1">
             <AppInput
-              appearance="outlined"
+              appearance="filled"
               label="Senha"
               placeholder="Digite sua senha"
               value={password}
@@ -269,7 +269,7 @@ function LoginContent() {
               {isInviteExpanded ? (
                 <YStack gap="$2" pt="$1">
                   <AppInput
-                    appearance="outlined"
+                    appearance="filled"
                     label="Código de convite"
                     placeholder="Informe o código recebido"
                     value={inviteCode}

@@ -188,7 +188,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   const signOut = useCallback(async () => {
-    await getSupabaseClient().auth.signOut();
+    const { error } = await getSupabaseClient().auth.signOut();
+    if (error) throw new Error('Não foi possível encerrar a sessão. Tente novamente.');
     recoveryUserId.current = undefined;
     setSession(null);
     setAccessState('signed-out');

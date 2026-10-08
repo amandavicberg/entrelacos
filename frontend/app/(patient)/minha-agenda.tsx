@@ -1,6 +1,8 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Button, Paragraph, SizableText, XStack, YStack } from 'tamagui';
+import { useWindowDimensions } from 'react-native';
+import { Button, Paragraph, SizableText, useTheme, XStack, YStack } from 'tamagui';
 
 import { AppCard } from '@/components/app-card';
 import { BrandButton } from '@/components/brand-button';
@@ -24,6 +26,9 @@ function consultationDate(value: string): string {
 
 export default function PatientAgendaScreen() {
   const { session } = useAuth();
+  const theme = useTheme();
+  const { width, fontScale } = useWindowDimensions();
+  const wide = width >= 800 && fontScale < 1.3;
   const [now, setNow] = useState(() => Date.now());
   const today = dateKey(new Date(now));
   const [month, setMonth] = useState(() => monthKey(today));
@@ -103,54 +108,68 @@ export default function PatientAgendaScreen() {
     .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
   const maxMonth = monthKey(dateKey(new Date(now + 60 * 24 * 60 * 60 * 1000)));
   const maxDay = dateKey(new Date(now + 60 * 24 * 60 * 60 * 1000));
+  const selectedDateLabel = new Date(`${selectedDay}T12:00:00Z`).toLocaleDateString('pt-BR', {
+    timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long',
+  });
 
-  return <PatientScreen title="Minha agenda" description="Escolha um horário disponível e acompanhe suas consultas.">
-    {feedback ? <Paragraph role="status" color="$brand">{feedback}</Paragraph> : null}
-    <AppCard p="$5" title="Agendar consulta">
-      <Paragraph color="$muted" size="$3">Horários de Brasília. Você pode reservar a partir de 1 hora de antecedência, até 60 dias à frente.</Paragraph>
-      <MonthCalendar month={month} selected={selectedDay} marks={marks} minMonth={monthKey(today)} maxMonth={maxMonth}
-        minDay={today} maxDay={maxDay} markDescription="Os pontos indicam dias com horários livres." markedDayLabel="com horários livres"
-        onMonthChange={(value) => { setMonth(value); setSelectedDay(`${value}-01`); setSelectedSlot(null); }}
-        onSelect={(value) => { setSelectedDay(value); setSelectedSlot(null); }} />
-      {slotLoading ? <FeedbackState status="loading" title="Buscando horários livres" /> : null}
-      {!slotLoading && slotError ? <YStack gap="$2"><FeedbackState status="error" description={slotError} />
-        <Button self="flex-start" minH="$touchTarget" onPress={loadSlots}>Tentar novamente</Button></YStack> : null}
-      {!slotLoading && !slotError ? <YStack gap="$3" pt="$3" borderTopWidth={1} borderColor="$borderColor">
-        <SizableText color="$color" fontWeight="700">Horários para {new Date(`${selectedDay}T12:00:00Z`).toLocaleDateString('pt-BR', { timeZone: 'UTC', day: 'numeric', month: 'long' })}</SizableText>
-        {daySlots.length === 0 ? <Paragraph color="$muted">Não há horários livres neste dia. Escolha outra data com ponto no calendário.</Paragraph> :
-          <XStack gap="$2" flexWrap="wrap">{daySlots.map((item) => <Button key={item.startsAt} minH="$touchTarget"
-            bg={selectedSlot?.startsAt === item.startsAt ? '$brand' : '$soft'}
-            color={selectedSlot?.startsAt === item.startsAt ? '$brandContrast' : '$brand'}
-            aria-pressed={selectedSlot?.startsAt === item.startsAt}
-            onPress={() => setSelectedSlot(item)}>
+  return <PatientScreen title="Minha agenda" description="Escolha um dia para agendar e acompanhe suas próximas consultas.">
+    {feedback ? <AppCard p="$3" background="$accentSoft" borderColor="$logoBorder"><Paragraph role="status" color="$color">{feedback}</Paragraph></AppCard> : null}
+    <XStack items="center" gap="$2" self="flex-start" bg="$accentSoft" px="$3" py="$2" rounded="$12">
+      <Ionicons name="time-outline" size={16} color={theme.accentText.val} accessible={false} />
+      <SizableText color="$accentText" size="$2" fontWeight="700">Horário de Brasília</SizableText>
+    </XStack>
+    <XStack flexDirection={wide ? 'row' : 'column'} gap="$4" items="stretch">
+      <AppCard flex={wide ? 1 : undefined} minW={0} p="$5">
+        <SizableText color="$color" fontWeight="700" fontSize={18}>Escolha uma data</SizableText>
+        <Paragraph color="$muted" size="$2">Os pontos marcam dias com horários livres nos próximos 60 dias.</Paragraph>
+        <MonthCalendar month={month} selected={selectedDay} marks={marks} minMonth={monthKey(today)} maxMonth={maxMonth}
+          minDay={today} maxDay={maxDay} markDescription="Os pontos indicam dias com horários livres." markedDayLabel="com horários livres"
+          onMonthChange={(value) => { setMonth(value); setSelectedDay(`${value}-01` < today ? today : `${value}-01`); setSelectedSlot(null); }}
+          onSelect={(value) => { setSelectedDay(value); setSelectedSlot(null); }} />
+      </AppCard>
+      <AppCard flex={wide ? 1 : undefined} minW={0} p="$5">
+        <XStack items="center" gap="$3">
+          <YStack width={56} height={56} items="center" justify="center" bg="$accentSoft" rounded="$control">
+            <SizableText color="$accentText" fontFamily="$heading" fontSize={24}>{Number(selectedDay.slice(-2))}</SizableText>
+          </YStack>
+          <YStack flex={1} minW={0} gap="$1"><Paragraph color="$muted" size="$2">DIA SELECIONADO</Paragraph><SizableText color="$color" fontWeight="700" textTransform="capitalize">{selectedDateLabel}</SizableText></YStack>
+        </XStack>
+        <YStack gap="$2" pt="$3" borderTopWidth={1} borderColor="$borderColor">
+          <SizableText color="$color" fontWeight="700">Horários disponíveis</SizableText>
+          <Paragraph color="$muted" size="$2">Agende com pelo menos 1 hora de antecedência.</Paragraph>
+        </YStack>
+        {slotLoading ? <FeedbackState status="loading" title="Buscando horários" /> : null}
+        {!slotLoading && slotError ? <YStack gap="$2"><FeedbackState status="error" description={slotError} /><Button self="flex-start" minH="$touchTarget" onPress={loadSlots}>Tentar novamente</Button></YStack> : null}
+        {!slotLoading && !slotError && daySlots.length === 0 ? <YStack items="center" gap="$2" py="$5" bg="$background" rounded="$control"><Ionicons name="calendar-clear-outline" size={25} color={theme.muted.val} accessible={false} /><Paragraph color="$muted" text="center">Sem horários livres neste dia. Escolha uma data marcada no calendário.</Paragraph></YStack> : null}
+        {!slotLoading && !slotError && daySlots.length > 0 ? <XStack gap="$2" flexWrap="wrap">{daySlots.map((item) => {
+          const selected = selectedSlot?.startsAt === item.startsAt;
+          return <Button key={item.startsAt} minH="$touchTarget" bg={selected ? '$brand' : '$soft'} color={selected ? '$brandContrast' : '$brand'}
+            borderWidth={1} borderColor={selected ? '$brand' : '$borderColor'}
+            hoverStyle={{ bg: selected ? '$brandHover' : '$backgroundPress' }} pressStyle={{ bg: selected ? '$brandPress' : '$backgroundPress' }}
+            aria-pressed={selected} onPress={() => setSelectedSlot(item)}>
             {new Date(item.startsAt).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })}
-          </Button>)}</XStack>}
-        {selectedSlot ? <YStack gap="$2" p="$4" bg="$accentSoft" rounded="$control" borderWidth={1} borderColor="$logoBorder">
+          </Button>;
+        })}</XStack> : null}
+        {selectedSlot ? <YStack gap="$3" p="$4" bg="$accentSoft" rounded="$control" borderWidth={1} borderColor="$logoBorder">
           <SizableText color="$color" fontWeight="700">Confirmar agendamento</SizableText>
           <Paragraph color="$muted">{consultationDate(selectedSlot.startsAt)}</Paragraph>
-          <XStack gap="$2" flexWrap="wrap">
-            <BrandButton disabled={busy} onPress={() => void book()}>{busy ? 'Agendando…' : 'Confirmar horário'}</BrandButton>
-            <Button minH="$touchTarget" disabled={busy} onPress={() => setSelectedSlot(null)}>Escolher outro</Button>
-          </XStack>
+          <XStack gap="$2" flexWrap="wrap"><BrandButton disabled={busy} onPress={() => void book()}>{busy ? 'Agendando…' : 'Confirmar horário'}</BrandButton><Button minH="$touchTarget" disabled={busy} onPress={() => setSelectedSlot(null)}>Escolher outro</Button></XStack>
         </YStack> : null}
-      </YStack> : null}
-    </AppCard>
+      </AppCard>
+    </XStack>
 
-    <AppCard p="$5" title="Minhas consultas">
+    <AppCard p="$5">
+      <XStack items="center" justify="space-between" gap="$2" flexWrap="wrap">
+        <YStack gap="$1"><SizableText color="$color" fontWeight="700" fontSize={18}>Próximas consultas</SizableText><Paragraph color="$muted" size="$2">Confirme sua presença ou cancele se não puder comparecer.</Paragraph></YStack>
+        {!appointmentLoading && !appointmentError ? <SizableText color="$brand" bg="$soft" px="$3" py="$1" rounded="$12" size="$2" fontWeight="700">{upcoming.length} {upcoming.length === 1 ? 'consulta' : 'consultas'}</SizableText> : null}
+      </XStack>
       {appointmentLoading ? <FeedbackState status="loading" title="Carregando consultas" /> : null}
-      {!appointmentLoading && appointmentError ? <YStack gap="$2"><FeedbackState status="error" description={appointmentError} />
-        <Button self="flex-start" minH="$touchTarget" onPress={loadAppointments}>Tentar novamente</Button></YStack> : null}
-      {!appointmentLoading && !appointmentError && upcoming.length === 0 ? <Paragraph color="$muted">Nenhuma consulta futura agendada.</Paragraph> : null}
-      {!appointmentLoading && !appointmentError ? upcoming.map((item) => <YStack key={item.id} gap="$2" p="$4" bg="$background" rounded="$control" borderWidth={1} borderColor="$borderColor">
-        <SizableText color="$color" fontWeight="700">{consultationDate(item.startsAt)}</SizableText>
-        <Paragraph color="$muted" size="$2">{item.patientResponse === 'confirmed' ? 'Confirmada' : 'Aguardando sua confirmação'}</Paragraph>
-        <XStack gap="$2" flexWrap="wrap">
-          {item.patientResponse === 'pending' ? <BrandButton disabled={busy} onPress={() => void respond(item, 'confirmed')}>Confirmar</BrandButton> : null}
-          <Button minH="$touchTarget" disabled={busy} bg="$declinedBackground" color="$declinedColor"
-            onPress={() => setCancelId(item.id)}>Cancelar consulta</Button>
-        </XStack>
-        {cancelId === item.id ? <CancellationConfirmation busy={busy} onKeep={() => setCancelId(null)}
-          onConfirm={() => void respond(item, 'cancelled')} /> : null}
+      {!appointmentLoading && appointmentError ? <YStack gap="$2"><FeedbackState status="error" description={appointmentError} /><Button self="flex-start" minH="$touchTarget" onPress={loadAppointments}>Tentar novamente</Button></YStack> : null}
+      {!appointmentLoading && !appointmentError && upcoming.length === 0 ? <Paragraph color="$muted">Nenhuma consulta futura agendada. Escolha um dia no calendário acima.</Paragraph> : null}
+      {!appointmentLoading && !appointmentError ? upcoming.map((item) => <YStack key={item.id} gap="$3" p="$4" bg="$background" rounded="$control" borderWidth={1} borderColor="$borderColor">
+        <XStack items="center" gap="$3"><YStack width={44} height={44} items="center" justify="center" bg="$soft" rounded="$control"><Ionicons name="calendar-outline" size={22} color={theme.brand.val} accessible={false} /></YStack><YStack flex={1} minW={0} gap="$1"><SizableText color="$color" fontWeight="700" textTransform="capitalize">{consultationDate(item.startsAt)}</SizableText><Paragraph color={item.patientResponse === 'confirmed' ? '$confirmedColor' : '$pendingColor'} size="$2">{item.patientResponse === 'confirmed' ? 'Presença confirmada' : 'Aguardando sua confirmação'}</Paragraph></YStack></XStack>
+        <XStack gap="$2" flexWrap="wrap">{item.patientResponse === 'pending' ? <BrandButton disabled={busy} onPress={() => void respond(item, 'confirmed')}>Confirmar presença</BrandButton> : null}<Button minH="$touchTarget" disabled={busy} bg="$declinedBackground" color="$declinedColor" onPress={() => setCancelId(item.id)}>Cancelar consulta</Button></XStack>
+        {cancelId === item.id ? <CancellationConfirmation busy={busy} onKeep={() => setCancelId(null)} onConfirm={() => void respond(item, 'cancelled')} /> : null}
       </YStack>) : null}
     </AppCard>
   </PatientScreen>;

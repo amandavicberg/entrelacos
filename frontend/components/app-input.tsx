@@ -7,7 +7,7 @@ type AppInputProps = ComponentProps<typeof Input> & {
   error?: string;
   startAdornment?: ReactNode;
   endAdornment?: ReactNode;
-  appearance?: 'default' | 'outlined';
+  appearance?: 'default' | 'outlined' | 'filled';
 };
 
 export function AppInput({
@@ -18,6 +18,7 @@ export function AppInput({
   const [focused, setFocused] = useState(false);
   const { fontScale } = useWindowDimensions();
   const outlined = appearance === 'outlined';
+  const filled = appearance === 'filled';
   const inputId = id ?? `input-${label.toLowerCase().replace(/\s+/g, '-')}`;
   const errorId = `${inputId}-error`;
   const hasAdornment = Boolean(startAdornment || endAdornment);
@@ -28,24 +29,25 @@ export function AppInput({
       <Label htmlFor={inputId} color="$color" fontFamily="$body" fontWeight="600">
         {label}
       </Label>
-      {hasAdornment || outlined ? (
+      {hasAdornment || outlined || filled ? (
         <XStack
-          minH={outlined ? '$control' : 50}
+          minH={outlined || filled ? '$control' : 50}
           items="center"
           gap="$2"
           px="$3"
-          flexWrap={outlined ? 'wrap' : 'nowrap'}
-          bg={outlined ? '$surface' : '$background'}
-          borderWidth={1}
+          flexWrap={endAdornment && fontScale > 1.3 ? 'wrap' : 'nowrap'}
+          bg={filled ? '$soft' : outlined ? '$surface' : '$background'}
+          borderWidth={filled && !focused && !error ? 0 : 1}
           borderColor={borderColor}
-          style={{ borderRadius: outlined ? tokens.radius.control.val : tokens.radius.$4.val }}
+          style={{ borderRadius: outlined || filled ? tokens.radius.control.val : tokens.radius.$4.val }}
           focusWithinStyle={outlined ? undefined : { borderColor: '$brand', borderWidth: 2 }}
         >
           {startAdornment}
           <Input
             id={inputId}
             flex={1}
-            {...(outlined ? { minW: 80, minH: '$touchTarget', height: 'auto', py: '$2', color: '$color', placeholderTextColor: '$muted' } as const : {})}
+            minW={0}
+            {...(outlined || filled ? { minH: '$touchTarget', height: 'auto', py: '$2', color: '$color', placeholderTextColor: '$muted' } as const : {})}
             px={0}
             bg="transparent"
             borderWidth={0}
@@ -65,7 +67,7 @@ export function AppInput({
               onBlur?.(event);
             }}
           />
-          {outlined && endAdornment && fontScale > 1.3 ? (
+          {(outlined || filled) && endAdornment && fontScale > 1.3 ? (
             <XStack width="100%" justify="flex-end" pb="$1">{endAdornment}</XStack>
           ) : endAdornment}
         </XStack>

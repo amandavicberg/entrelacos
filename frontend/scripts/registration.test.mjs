@@ -20,6 +20,8 @@ test('cadastro rejeita datas inexistentes, futuras e dados inválidos antes da r
   for (const password of ['abcdefghij', 'Abcdefghij', 'Abcdefghi1', 'Abcdefghi!', 'Ab1!']) {
     assert.ok(validateRegistration({ ...patient, password }).password, password);
   }
+  assert.ok(validateRegistration({ ...patient, password: 'Ab1!      c' }).password);
+  assert.equal(validateRegistration({ ...patient, password: 'Ab1!cdefgh ij' }).password, undefined);
 });
 test('data brasileira e telefone mantêm valores esperados para o cadastro', () => {
   assert.equal(birthDateToIso('29/02/2000'), '2000-02-29');

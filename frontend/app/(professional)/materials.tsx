@@ -172,7 +172,7 @@ export default function MaterialsScreen() {
       setDescription('');
       setExternalUrl('');
       setFile(null);
-      setFeedback('Material cadastrado e disponível na biblioteca.');
+      setFeedback('Material salvo na biblioteca. Para enviá-lo, clique em Compartilhar e selecione os pacientes.');
       await load();
     } catch (cause) {
       setFormFeedback(cause instanceof Error ? cause.message : 'Não foi possível cadastrar o material.');
@@ -314,7 +314,7 @@ export default function MaterialsScreen() {
         <XStack items={compact ? 'flex-start' : 'center'} flexDirection={compact ? 'column' : 'row'} justify="space-between" gap="$2">
           <YStack gap="$1" minW={0} width={compact ? '100%' : undefined} flex={compact ? undefined : 1}>
             <SizableText color="$color" fontWeight="700" fontSize={20}>Sua biblioteca</SizableText>
-            <Paragraph color="$muted" size="$2">Abra um conteúdo ou escolha com quem compartilhar.</Paragraph>
+            <Paragraph color="$muted" size="$2">Cadastrar um conteúdo não o envia ao paciente. Use Compartilhar em cada material para escolher quem o receberá.</Paragraph>
           </YStack>
           {!loading && !error ? <SizableText color="$accentText" bg="$accentSoft" px="$3" py="$1" rounded="$12" size="$2" fontWeight="700">
             {materials.length} {materials.length === 1 ? 'material' : 'materiais'}
