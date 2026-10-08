@@ -6,7 +6,6 @@ import { Theme, useTheme } from 'tamagui';
 
 import { FeedbackState } from '@/components/feedback-state';
 import { useAuth } from '@/contexts/auth-context';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { ProfessionalIcon } from '@/components/professional/professional-screen';
 
 const tabs: { name: string; title: string; icon: ProfessionalIcon; selected: ProfessionalIcon }[] = [
@@ -40,18 +39,18 @@ function ProfessionalTabs() {
         }} />
       ))}
       <Tabs.Screen name="patients/[relationshipId]" options={{ href: null }} />
+      <Tabs.Screen name="profile" options={{ href: null }} />
     </Tabs>
   );
 }
 
 export default function ProfessionalLayout() {
   const { accessState } = useAuth();
-  const scheme = useColorScheme();
   if (accessState === 'loading') return <FeedbackState status="loading" title="Validando acesso" />;
   if (accessState === 'signed-out') return <Redirect href={'/login' as RelativePathString} />;
   if (accessState === 'patient-active') return <Redirect href="/(patient)" />;
   if (accessState === 'patient-pending') return <Redirect href="/(patient)/pending" />;
   if (accessState === 'patient-unassociated') return <Redirect href={'/(patient)/connect' as RelativePathString} />;
   if (accessState !== 'professional') return <Redirect href="/login" />;
-  return <Theme name={scheme === 'dark' ? 'dark_professional' : 'light_professional'}><ProfessionalTabs /></Theme>;
+  return <Theme name="light_professional"><ProfessionalTabs /></Theme>;
 }

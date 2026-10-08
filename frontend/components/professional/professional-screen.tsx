@@ -25,7 +25,7 @@ export function ProfessionalScreen({ children }: PropsWithChildren) {
 
 export function ProfessionalBrand() {
   return (
-    <BrandLogo compact width={64} />
+    <BrandLogo width={160} framed={false} />
   );
 }
 

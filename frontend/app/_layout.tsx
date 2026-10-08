@@ -34,7 +34,7 @@ function RootNavigator() {
       <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
       <Stack.Screen name="reset-password" options={{ headerShown: false }} />
       <Stack.Screen name="(patient)" options={{ headerShown: false }} />
-      <Stack.Protected guard={accessState === 'professional'}>
+      <Stack.Protected guard={accessState === 'professional' || accessState === 'loading'}>
         <Stack.Screen name="(professional)" options={{ headerShown: false }} />
       </Stack.Protected>
     </Stack>

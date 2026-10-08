@@ -18,6 +18,9 @@ async function fetchApi(url: string, init: RequestInit): Promise<Response> {
     if (controller.signal.aborted) {
       throw new Error('A solicitação demorou mais que o esperado. Verifique sua conexão e tente novamente.');
     }
+    if (error instanceof TypeError) {
+      throw new Error('Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.');
+    }
     throw error;
   } finally {
     clearTimeout(timeout);
@@ -42,6 +45,20 @@ export type ProfessionalInvitation = {
   code: string;
   expiresAt: string;
 };
+
+export async function updateProfessionalIdentity(accessToken: string, fullName: string): Promise<void> {
+  await requestJson('/v1/professional/profile', accessToken, {
+    method: 'PATCH', body: JSON.stringify({ section: 'identity', fullName }),
+  });
+}
+
+export async function updateProfessionalDetails(accessToken: string, input: {
+  specialty: string; registrationType: string; registrationNumber: string;
+}): Promise<void> {
+  await requestJson('/v1/professional/profile', accessToken, {
+    method: 'PATCH', body: JSON.stringify({ section: 'professional', ...input }),
+  });
+}
 
 export type PendingRelationship = {
   id: string;
@@ -121,6 +138,13 @@ export async function consumePatientInvite(code: string, accessToken: string): P
 export type FollowUpPatient = { relationshipId: string; patientName: string; approvedAt: string | null };
 export type FollowUpObservation = { id: string; content: string; visibility: 'professional' | 'patient'; occurredAt: string; version: number; createdAt: string };
 export type FollowUpAppointment = { id: string; relationshipId: string; startsAt: string; endsAt: string; state: 'scheduled' | 'cancelled'; patientResponse: 'pending' | 'confirmed' | 'cancelled'; cancelledAt: string | null; cancellationReason: string | null };
+export type ProfessionalActivity = {
+  count: number;
+  periodDays: number;
+  items: { id: string; relationshipId: string; patientName: string; type: 'document' | 'message' | 'check-in'; at: string }[];
+};
+export type AvailabilityWindow = { id: string; weekday: number; startMinute: number; endMinute: number; slotMinutes: number };
+export type AvailableSlot = { startsAt: string; endsAt: string };
 export type FollowUpMaterial = { id: string; title: string; description: string | null; kind: 'ebook' | 'podcast' | 'video' | 'pdf' | 'audio' | 'other'; source: 'external' | 'storage'; externalUrl: string | null; mimeType: string | null; sizeBytes: number | null; createdAt: string; relationshipId?: string };
 export type TimelineItem = { id: string; type: 'observation' | 'appointment' | 'material'; at: string; label: string; content?: string };
 export type MaterialUsage = { count: number; sizeBytes: number; quotaBytes: number };
@@ -131,7 +155,19 @@ export type PatientCheckIn = { id: string; relationshipId: string; feeling: 'cal
 export type PatientDocumentUpload = { documentId: string; storagePath: string; signedUrl: string; token: string; mimeType: string; sizeBytes: number };
 
 export async function listProfessionalPatients(accessToken: string): Promise<FollowUpPatient[]> {
-  return (await requestJson<{ patients: FollowUpPatient[] }>('/v1/professional/patients?limit=100', accessToken)).patients;
+  const patients: FollowUpPatient[] = [];
+  const pageSize = 100;
+  for (let offset = 0; ; offset += pageSize) {
+    const page = await requestJson<{ patients: FollowUpPatient[]; hasMore?: boolean }>(
+      '/v1/professional/patients?limit=' + pageSize + '&offset=' + offset, accessToken,
+    );
+    patients.push(...page.patients);
+    if (!(page.hasMore ?? page.patients.length === pageSize)) return patients;
+  }
+}
+
+export async function listProfessionalActivity(accessToken: string): Promise<ProfessionalActivity> {
+  return requestJson<ProfessionalActivity>('/v1/professional/activity', accessToken);
 }
 
 export async function getProfessionalPatient(accessToken: string, relationshipId: string): Promise<FollowUpPatient> {
@@ -153,6 +189,29 @@ export async function correctProfessionalObservation(accessToken: string, relati
 export async function listAppointments(accessToken: string, relationshipId?: string, patient = false): Promise<FollowUpAppointment[]> {
   const path = patient ? '/v1/patient/appointments' : relationshipId ? `/v1/professional/patients/${relationshipId}/appointments` : '/v1/professional/appointments';
   return (await requestJson<{ appointments: FollowUpAppointment[] }>(path, accessToken)).appointments;
+}
+
+export async function listProfessionalAvailability(accessToken: string): Promise<AvailabilityWindow[]> {
+  return (await requestJson<{ availability: AvailabilityWindow[] }>('/v1/professional/availability', accessToken)).availability;
+}
+
+export async function createProfessionalAvailability(accessToken: string, input: {
+  weekday: number; startMinute: number; endMinute: number; slotMinutes: number;
+}): Promise<void> {
+  await requestJson('/v1/professional/availability', accessToken, { method: 'POST', body: JSON.stringify(input) });
+}
+
+export async function removeProfessionalAvailability(accessToken: string, id: string): Promise<void> {
+  await requestJson(`/v1/professional/availability/${id}`, accessToken, { method: 'POST' });
+}
+
+export async function listPatientAvailableSlots(accessToken: string, from: string, until: string): Promise<AvailableSlot[]> {
+  const query = new URLSearchParams({ from, until });
+  return (await requestJson<{ slots: AvailableSlot[] }>(`/v1/patient/availability?${query}`, accessToken)).slots;
+}
+
+export async function bookPatientAppointment(accessToken: string, slot: AvailableSlot): Promise<void> {
+  await requestJson('/v1/patient/appointments/book', accessToken, { method: 'POST', body: JSON.stringify(slot) });
 }
 
 export async function createAppointment(accessToken: string, relationshipId: string, startsAt: string, endsAt: string): Promise<void> {

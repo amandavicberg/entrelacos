@@ -13,6 +13,7 @@ const entrelacosLightColors = {
   hero: '#34465C', heroText: '#F3EBDD', heroMuted: '#D5DFE4',
   pendingBackground: '#F8E8CF', pendingColor: '#74501F',
   declinedBackground: '#F3E1DD', declinedColor: '#8D4037', red9: '#A13630', red10: '#A13630',
+  confirmedBackground: '#E4F2E9', confirmedColor: '#276249',
   shadowColor: '#292F36', overlay: '#00000052',
   logoSurface: '#F3EBDD', logoBorder: '#E1D4BE',
 };
@@ -26,6 +27,7 @@ const entrelacosDarkColors = {
   hero: '#34465C', heroText: '#F3EBDD', heroMuted: '#D5DFE4',
   pendingBackground: '#5B482D', pendingColor: '#F3D49C',
   declinedBackground: '#5A3735', declinedColor: '#F4BBB3', red9: '#F4BBB3', red10: '#F4BBB3',
+  confirmedBackground: '#274739', confirmedColor: '#B6E9C9',
   shadowColor: '#000000', overlay: '#00000085',
   logoSurface: '#F3EBDD', logoBorder: '#BE914F',
 };

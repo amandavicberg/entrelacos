@@ -99,6 +99,7 @@ export async function listProfessionalPatients(request: IncomingMessage, respons
     }),
     limit,
     offset,
+    hasMore: (relationships ?? []).length === limit,
   });
 }
 
@@ -245,6 +246,7 @@ export async function createAppointment(
     starts_at: interval.startsAt,
     ends_at: interval.endsAt,
   }).select('id').single();
+  if (error?.code === '23P01') throw new HttpError(409, 'Esse horário já está ocupado. Escolha outro.');
   if (error) databaseFailure('Falha ao criar consulta', 'Não foi possível criar a consulta.', error);
   sendJson(response, 201, { appointment: data });
 }
@@ -268,6 +270,7 @@ export async function rescheduleAppointment(
     .eq('appointment_state', 'scheduled')
     .eq('status', 0)
     .select('id').maybeSingle();
+  if (error?.code === '23P01') throw new HttpError(409, 'Esse horário já está ocupado. Escolha outro.');
   if (error) databaseFailure('Falha ao reagendar consulta', 'Não foi possível reagendar a consulta.', error);
   if (!data) throw new HttpError(409, 'Esta consulta não pode mais ser reagendada.');
   sendJson(response, 200, {});

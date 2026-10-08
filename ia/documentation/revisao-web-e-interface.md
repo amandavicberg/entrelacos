@@ -1,5 +1,9 @@
 # Revisão web, autenticação e interface
 
+Para o estado atual do painel profissional e da agenda, consulte
+[`painel-e-perfil-profissional.md`](painel-e-perfil-profissional.md) e
+[`agenda-com-disponibilidade.md`](agenda-com-disponibilidade.md). Esta seção registra a revisão anterior.
+
 Atualizado em 2026-10-05. Implementação local na `main`, sem commit, publicação
 ou alteração remota de configuração nesta revisão. Nenhuma migration criada ou
 aplicada. A revisão visual individual de todas as telas autenticadas ainda não
@@ -101,8 +105,9 @@ variante deve ser revisada pelo responsável da marca antes da publicação fina
 - Não afirmar auditoria de autorização concluída: as policies existentes e
   operações de versionamento precisam de testes integrados próprios antes de
   dados reais de saúde. Nenhuma policy foi alterada nesta revisão.
-- O servidor estático simples usado na prévia local não reproduz as regras da
-  Vercel; atualização de rotas precisa ser validada na hospedagem configurada.
+- A prévia local posterior usa `frontend/scripts/preview-web.py` para servir
+  rotas sem extensão e evitar 404 ao recarregar; a hospedagem configurada
+  ainda precisa de validação separada.
 
 ## Manutenção
 

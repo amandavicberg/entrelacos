@@ -49,7 +49,8 @@ export function AppInput({
             px={0}
             bg="transparent"
             borderWidth={0}
-            focusStyle={{ borderWidth: 0 }}
+            focusStyle={{ borderWidth: 0, outlineWidth: 0, outlineStyle: 'none' }}
+            focusVisibleStyle={{ borderWidth: 0, outlineWidth: 0, outlineStyle: 'none' }}
             fontFamily="$body"
             aria-label={label}
             aria-describedby={error ? errorId : undefined}

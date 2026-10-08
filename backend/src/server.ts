@@ -25,6 +25,9 @@ import {
 import { sendJson } from './http.js';
 import { consumeInvite, decideRelationship, generateInvite, listPendingRelationships } from './invitations.js';
 import { confirmPatientDocumentUpload, createPatientCheckIn, createPatientMessage, getBirthdayMessage, getPatientDocumentUrl, listPatientCheckIns, listPatientDocuments, listPatientMessages, preparePatientDocumentUpload, upsertBirthdayMessage } from './patient-space.js';
+import { updateProfessionalProfile } from './professional-profile.js';
+import { listProfessionalActivity } from './professional-activity.js';
+import { bookPatientAppointment, createProfessionalAvailability, listPatientAvailableSlots, listProfessionalAvailability, removeProfessionalAvailability } from './availability.js';
 
 const port = Number(process.env.PORT ?? 3333);
 const host = process.env.HOST ?? '0.0.0.0';
@@ -36,12 +39,20 @@ const server = createServer(async (request, response) => {
   try {
     if (request.method === 'POST' && pathname === '/v1/patient/invitations/consume') return await consumeInvite(request, response);
     if (request.method === 'POST' && pathname === '/v1/professional/invitations') return await generateInvite(request, response);
+    if (request.method === 'PATCH' && pathname === '/v1/professional/profile') return await updateProfessionalProfile(request, response);
+    if (request.method === 'GET' && pathname === '/v1/professional/availability') return await listProfessionalAvailability(request, response);
+    if (request.method === 'POST' && pathname === '/v1/professional/availability') return await createProfessionalAvailability(request, response);
+    let availabilityMatch = new RegExp(`^/v1/professional/availability/${id}$`, 'i').exec(pathname);
+    if (request.method === 'POST' && availabilityMatch) return await removeProfessionalAvailability(request, response, availabilityMatch[1]);
+    if (request.method === 'GET' && pathname === '/v1/patient/availability') return await listPatientAvailableSlots(request, response);
+    if (request.method === 'POST' && pathname === '/v1/patient/appointments/book') return await bookPatientAppointment(request, response);
     if (request.method === 'GET' && pathname === '/v1/professional/relationships/pending') return await listPendingRelationships(request, response);
 
     let match = new RegExp(`^/v1/professional/relationships/${id}/(approve|reject)$`, 'i').exec(pathname);
     if (request.method === 'POST' && match) return await decideRelationship(request, response, match[1], match[2] === 'approve' ? 'active' : 'rejected');
 
     if (request.method === 'GET' && pathname === '/v1/professional/patients') return await listProfessionalPatients(request, response);
+    if (request.method === 'GET' && pathname === '/v1/professional/activity') return await listProfessionalActivity(request, response);
     match = new RegExp(`^/v1/professional/patients/${id}$`, 'i').exec(pathname);
     if (request.method === 'GET' && match) return await getProfessionalPatient(request, response, match[1]);
 

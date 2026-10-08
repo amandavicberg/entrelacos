@@ -12,7 +12,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { getBirthdayMessage, listAppointments, listMaterials, listPatientObservations, type FollowUpAppointment, type FollowUpMaterial, type FollowUpObservation } from '@/lib/api';
 
 const menuItems = [
-  { label: 'Minha agenda', icon: 'calendar-outline' as const, href: '/(patient)/agenda' as RelativePathString },
+  { label: 'Minha agenda', icon: 'calendar-outline' as const, href: '/(patient)/minha-agenda' as RelativePathString },
   { label: 'Orientações compartilhadas', icon: 'reader-outline' as const, href: '/(patient)/observations' as RelativePathString },
   { label: 'Meu histórico', icon: 'time-outline' as const, href: '/(patient)/history' as RelativePathString },
   { label: 'Materiais exclusivos', icon: 'play-circle-outline' as const, href: '/(patient)/materials' as RelativePathString },
@@ -107,8 +107,8 @@ export default function PatientHomeScreen() {
           <AppCard title="Próxima sessão">
             {summaryLoading ? <FeedbackState status="loading" title="Buscando sua agenda" description="Aguarde um momento." /> : null}
             {!summaryLoading && summaryError ? <YStack gap="$2"><FeedbackState status="error" title="Agenda indisponível" description={summaryError} /><Button minH="$touchTarget" onPress={() => void loadSummary()}>Tentar novamente</Button></YStack> : null}
-            {!summaryLoading && !summaryError && upcoming ? <YStack gap="$2"><XStack gap="$2" items="center"><Ionicons name="calendar-outline" size={21} color={theme.brand.val} /><SizableText color="$color" fontWeight="700" textTransform="capitalize">{formatAppointment(upcoming.startsAt)}</SizableText></XStack><Paragraph color="$muted">{upcoming.patientResponse === 'confirmed' ? 'Sua presença está confirmada.' : 'Sua confirmação está pendente.'}</Paragraph><Button self="flex-start" minH="$touchTarget" onPress={() => router.push('/(patient)/agenda' as RelativePathString)}>Ver agenda</Button></YStack> : null}
-            {!summaryLoading && !summaryError && !upcoming ? <YStack gap="$2"><Paragraph color="$muted">Nenhuma sessão futura está disponível no momento.</Paragraph><Button self="flex-start" minH="$touchTarget" onPress={() => router.push('/(patient)/agenda' as RelativePathString)}>Abrir agenda</Button></YStack> : null}
+            {!summaryLoading && !summaryError && upcoming ? <YStack gap="$2"><XStack gap="$2" items="center"><Ionicons name="calendar-outline" size={21} color={theme.brand.val} /><SizableText color="$color" fontWeight="700" textTransform="capitalize">{formatAppointment(upcoming.startsAt)}</SizableText></XStack><Paragraph color="$muted">{upcoming.patientResponse === 'confirmed' ? 'Sua presença está confirmada.' : 'Sua confirmação está pendente.'}</Paragraph><Button self="flex-start" minH="$touchTarget" onPress={() => router.push('/(patient)/minha-agenda' as RelativePathString)}>Ver agenda</Button></YStack> : null}
+            {!summaryLoading && !summaryError && !upcoming ? <YStack gap="$2"><Paragraph color="$muted">Nenhuma sessão futura está disponível no momento.</Paragraph><Button self="flex-start" minH="$touchTarget" onPress={() => router.push('/(patient)/minha-agenda' as RelativePathString)}>Abrir agenda</Button></YStack> : null}
           </AppCard>
 
           {birthdayMessage ? <AppCard title="Feliz aniversário!"><Paragraph color="$color">{birthdayMessage}</Paragraph></AppCard> : null}

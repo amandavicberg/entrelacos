@@ -7,6 +7,8 @@ export type ProfessionalProfile = {
   name: string;
   specialty?: string;
   registration?: string;
+  registrationType?: string;
+  registrationNumber?: string;
 };
 type ProfileState = { userId: string; attempt: number; status: 'loading' | 'error' | 'ready'; profile?: ProfessionalProfile };
 
@@ -35,6 +37,8 @@ export function useProfessionalProfile() {
           name: identity.data.full_name.trim(),
           specialty: details?.specialty?.trim() || undefined,
           registration: [details?.registration_type?.trim(), details?.registration_number?.trim()].filter(Boolean).join(' ') || undefined,
+          registrationType: details?.registration_type?.trim() || undefined,
+          registrationNumber: details?.registration_number?.trim() || undefined,
         };
         if (!controller.signal.aborted) setState({ userId, attempt, status: 'ready', profile });
       } catch {
