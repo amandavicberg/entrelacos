@@ -19,6 +19,30 @@ demonstrativos e à ausência dessas tabelas descrevem a configuração inicial,
 não o estado atual. O retorno de confirmação/recuperação e o build web também
 foram atualizados. Publicação e teste integrado com contas continuam pendentes.
 
+## Entrada pública clara (2026-10-08)
+
+`frontend/app/_layout.tsx` usa o tema claro como padrão, independentemente do
+tema do aparelho. As áreas autenticadas continuam com seus temas claros
+explícitos. `frontend/app/index.tsx` apresenta o propósito do produto e encaminha
+para cadastro ou login. `frontend/components/auth-screen.tsx` reúne o cabeçalho,
+o retorno ao início e a composição responsiva usada por login, cadastro,
+confirmação de e-mail e recuperação. A marca PNG usa `BrandLogo` sem moldura nas
+superfícies claras; a paleta permanece nos tokens de `tamagui.config.ts`.
+
+`frontend/app/cadastro.tsx` mostra perfil, dados pessoais, atuação profissional
+quando aplicável e segurança da conta nessa ordem. O texto dos requisitos da
+senha usa o validador compartilhado, sem alterar a regra de autenticação no
+servidor. As ações de autenticação e cadastro continuam em `AuthProvider` e
+`frontend/lib/registration.ts`, com os mesmos limites de acesso por papel e
+vínculo. Esta revisão não alterou banco, policies ou variáveis de ambiente.
+
+TypeScript, lint, 19 testes do frontend e exportação web passaram nesta revisão.
+A página inicial e o login foram inspecionados na prévia local em desktop e
+largura de celular; o cadastro foi inspecionado nos dois perfis, incluindo
+contraste do seletor profissional. A confirmação de e-mail, o ingresso por
+convite e os fluxos com contas vinculadas exigem o reteste de
+`roteiro-reteste-paciente-aline.md`.
+
 ## Estrutura atual
 
 - [`frontend/`](../../frontend/): aplicativo React Native com Expo SDK 57,
@@ -83,8 +107,8 @@ responsividade e estados de carregamento, erro e vazio.
 
 O cliente público do frontend está em `frontend/lib/supabase.ts` e é criado sob
 demanda. Ele usa `autoRefreshToken: true`, `detectSessionInUrl: false` e
-persistência em `expo-secure-store` no mobile; na web, a sessão fica apenas em
-memória. O `AuthProvider` trata o retorno do deep link de recuperação de senha
+persistência em `expo-secure-store` no mobile; na web, a sessão usa
+`sessionStorage`, com fallback em memória quando o navegador o bloqueia. O `AuthProvider` trata o retorno do deep link de recuperação de senha
 e não armazena a chave secreta do Supabase.
 
 O aplicativo lê somente o perfil da pessoa autenticada, suas relações e o

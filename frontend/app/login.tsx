@@ -130,9 +130,9 @@ function LoginContent() {
     <AuthScreen
       compact
       maxW={tokens.size.loginContent.val}
-      brand={<BrandLogo width={176} />}
-      title="Seu cuidado continua aqui"
-      description="Selecione seu perfil para acessar sua conta."
+      brand={<BrandLogo width={176} framed={false} />}
+      title="Entre na sua conta"
+      description="Escolha seu perfil e continue de onde parou."
       footer={
         <XStack items="center" justify="center" gap="$1" flexWrap="wrap" pb="$2">
           <Paragraph color="$muted">Ainda não tem conta?</Paragraph>
@@ -146,7 +146,7 @@ function LoginContent() {
     >
       <YStack gap="$4">
         <YStack gap="$2" role="radiogroup" aria-label="Tipo de acesso">
-          <SizableText color="$color" size="$3" fontWeight="700">Entrar como</SizableText>
+          <SizableText color="$color" size="$3" fontWeight="700">Acessar como</SizableText>
           <XStack gap="$1" p="$1" bg="$backgroundHover" borderWidth={1} borderColor="$borderColor" style={{ borderRadius: tokens.radius.control.val }}>
             {(['patient', 'professional'] as const).map((option) => {
               const selected = role === option;
@@ -261,8 +261,8 @@ function LoginContent() {
                 onPress={() => setIsInviteExpanded((value) => !value)}
               >
                 <YStack flex={1} minW={0} gap="$1">
-                  <SizableText color="$color" fontWeight="700">Primeiro acesso?</SizableText>
-                  <Paragraph color="$muted" size="$2">Tenho um código de convite.</Paragraph>
+                  <SizableText color="$color" fontWeight="700">Recebeu um convite?</SizableText>
+                  <Paragraph color="$muted" size="$2">Informe o código para solicitar seu vínculo.</Paragraph>
                 </YStack>
                 <Ionicons name={isInviteExpanded ? 'chevron-up-outline' : 'chevron-down-outline'} size={20} color={theme.muted.val} />
               </Button>

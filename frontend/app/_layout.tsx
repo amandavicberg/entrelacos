@@ -12,7 +12,6 @@ import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { TamaguiProvider } from 'tamagui';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import config from '@/tamagui.config';
 import { AuthProvider, useAuth } from '@/contexts/auth-context';
 
@@ -42,7 +41,6 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [fontsLoaded, fontError] = useFonts({
     Poppins_400Regular,
     Poppins_500Medium,
@@ -54,15 +52,12 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null;
 
   return (
-    <TamaguiProvider
-      config={config}
-      defaultTheme={colorScheme === 'dark' ? 'dark' : 'light'}
-    >
+    <TamaguiProvider config={config} defaultTheme="light">
       <SafeAreaProvider>
         <AuthProvider>
           <RootNavigator />
         </AuthProvider>
-        <StatusBar style="auto" />
+        <StatusBar style="dark" />
       </SafeAreaProvider>
     </TamaguiProvider>
   );

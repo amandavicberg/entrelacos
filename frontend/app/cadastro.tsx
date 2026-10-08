@@ -9,7 +9,7 @@ import { BrandButton } from '@/components/brand-button';
 import { FeedbackState } from '@/components/feedback-state';
 import { type AppRole, useAuth } from '@/contexts/auth-context';
 import { authErrorMessage, reportAuthError } from '@/lib/auth-errors';
-import { initialValues, validateRegistration, birthDateToIso, formatBirthDate, formatPhone, type FormValues, type FormErrors } from '@/lib/registration-form';
+import { initialValues, validateRegistration, birthDateToIso, formatBirthDate, formatPhone, passwordHint, type FormValues, type FormErrors } from '@/lib/registration-form';
 import { registerUser, resendConfirmationEmail } from '@/lib/registration';
 
 const loginPath = '/login' as RelativePathString;
@@ -163,8 +163,8 @@ export default function RegistrationScreen() {
 
   return (
     <AuthScreen
-      title="Crie seu acesso"
-      description="Escolha seu perfil e preencha apenas os dados necessários para começar."
+      title="Crie sua conta"
+      description="Escolha como vai usar o EntreLaços e preencha seus dados."
       maxW={560}
       footer={
         <XStack items="center" justify="center" gap="$1" flexWrap="wrap" pb="$2">
@@ -177,7 +177,7 @@ export default function RegistrationScreen() {
     >
       <YStack gap="$5">
         <YStack gap="$2">
-          <SizableText color="$muted" size="$3" fontWeight="700">Seu perfil</SizableText>
+          <SizableText color="$color" size="$3" fontWeight="700">Seu perfil</SizableText>
           <XStack gap="$1" p="$1" bg="$backgroundHover" borderWidth={1} borderColor="$borderColor" style={{ borderRadius: tokens.radius.$5.val }} role="radiogroup" aria-label="Perfil da nova conta">
             {(['patient', 'professional'] as const).map((role) => {
               const selected = values.role === role;
@@ -199,7 +199,9 @@ export default function RegistrationScreen() {
                   borderWidth={0}
                   style={{ borderRadius: tokens.radius.$4.val }}
                   fontWeight={selected ? '800' : '600'}
-                  pressStyle={{ scale: 0.98, opacity: 0.9 }}
+                  hoverStyle={{ bg: selected ? '$brandHover' : '$backgroundPress' }}
+                  pressStyle={{ bg: selected ? '$brandPress' : '$backgroundPress', scale: 0.98 }}
+                  focusVisibleStyle={{ outlineColor: '$outlineColor', outlineWidth: 2, outlineStyle: 'solid' }}
                   onPress={() => changeRole(role)}
                 >
                   {role === 'patient' ? 'Paciente' : 'Profissional'}
@@ -209,42 +211,46 @@ export default function RegistrationScreen() {
           </XStack>
           <Paragraph color="$muted" size="$2">
             {values.role === 'patient'
-              ? 'Você poderá informar um convite no primeiro acesso.'
-              : 'Vamos solicitar seus dados de atuação profissional.'}
+              ? 'Depois de confirmar o e-mail, informe o convite do profissional para solicitar o vínculo.'
+              : 'Os dados de atuação ajudam a identificar seu perfil profissional.'}
           </Paragraph>
         </YStack>
 
         <YStack gap="$4">
-          <SizableText color="$color" size="$5" fontWeight="800">Seus dados</SizableText>
+          <SizableText color="$color" size="$5" fontWeight="700">Seus dados</SizableText>
           <AppInput appearance="filled" maxLength={160} label="Nome completo" placeholder="Seu nome completo" value={values.fullName} onChangeText={(value) => updateValue('fullName', value)} error={errors.fullName} autoCapitalize="words" autoComplete="name" returnKeyType="next" disabled={isSubmitting} startAdornment={<Ionicons name="person-outline" size={19} color={theme.muted.val} />} />
           <AppInput appearance="filled" label="Data de nascimento" placeholder="DD/MM/AAAA" value={values.birthDate} onChangeText={(value) => updateValue('birthDate', formatBirthDate(value))} error={errors.birthDate} keyboardType="number-pad" disabled={isSubmitting} startAdornment={<Ionicons name="calendar-outline" size={19} color={theme.muted.val} />} />
           <AppInput appearance="filled" label="Telefone" placeholder="(00) 00000-0000" value={values.phone} onChangeText={(value) => updateValue('phone', formatPhone(value))} error={errors.phone} keyboardType="phone-pad" autoComplete="tel" disabled={isSubmitting} startAdornment={<Ionicons name="call-outline" size={19} color={theme.muted.val} />} />
           <AppInput appearance="filled" maxLength={254} type="email" label="E-mail" placeholder="seuemail@exemplo.com" value={values.email} onChangeText={(value) => updateValue('email', value)} error={errors.email} autoCapitalize="none" autoCorrect={false} autoComplete="email" keyboardType="email-address" textContentType="emailAddress" disabled={isSubmitting} startAdornment={<Ionicons name="mail-outline" size={19} color={theme.muted.val} />} />
-          <AppInput appearance="filled" label="Senha" placeholder="10+ caracteres sem contar espaços" value={values.password} onChangeText={(value) => updateValue('password', value)} error={errors.password} secureTextEntry={!showPassword} type={showPassword ? 'text' : 'password'} autoCapitalize="none" autoCorrect={false} autoComplete="new-password" textContentType="newPassword" disabled={isSubmitting} startAdornment={<Ionicons name="lock-closed-outline" size={19} color={theme.muted.val} />} endAdornment={<PasswordVisibilityButton visible={showPassword} disabled={isSubmitting} color={theme.muted.val} onPress={() => setShowPassword((value) => !value)} />} />
-          <AppInput appearance="filled" label="Confirmar senha" placeholder="Repita sua senha" value={values.passwordConfirmation} onChangeText={(value) => updateValue('passwordConfirmation', value)} error={errors.passwordConfirmation} secureTextEntry={!showPasswordConfirmation} type={showPasswordConfirmation ? 'text' : 'password'} autoCapitalize="none" autoCorrect={false} autoComplete="new-password" textContentType="newPassword" returnKeyType={values.role === 'professional' ? 'next' : 'done'} onSubmitEditing={values.role === 'patient' ? submit : undefined} disabled={isSubmitting} startAdornment={<Ionicons name="shield-checkmark-outline" size={19} color={theme.muted.val} />} endAdornment={<PasswordVisibilityButton visible={showPasswordConfirmation} disabled={isSubmitting} color={theme.muted.val} onPress={() => setShowPasswordConfirmation((value) => !value)} />} />
         </YStack>
 
         {values.role === 'professional' ? (
-          <YStack gap="$4" p="$4" bg="$backgroundHover" borderWidth={1} borderColor="$borderColor" style={{ borderRadius: tokens.radius.$5.val }}>
+          <YStack gap="$4" pt="$4" borderTopWidth={1} borderColor="$borderColor">
             <YStack gap="$1">
-              <SizableText color="$color" size="$5" fontWeight="800">Atuação profissional</SizableText>
+              <SizableText color="$color" size="$5" fontWeight="700">Atuação profissional</SizableText>
               <Paragraph color="$muted" size="$2">Essas informações identificam sua atuação no EntreLaços.</Paragraph>
             </YStack>
             <AppInput appearance="filled" label="Atuação profissional" placeholder="Ex.: Psicologia clínica" value={values.specialty} onChangeText={(value) => updateValue('specialty', value)} error={errors.specialty} autoCapitalize="sentences" disabled={isSubmitting} startAdornment={<Ionicons name="briefcase-outline" size={19} color={theme.muted.val} />} />
             <AppInput appearance="filled" label="Tipo de registro profissional" placeholder="Ex.: CRP" value={values.registrationType} onChangeText={(value) => updateValue('registrationType', value)} error={errors.registrationType} autoCapitalize="characters" disabled={isSubmitting} startAdornment={<Ionicons name="document-text-outline" size={19} color={theme.muted.val} />} />
-            <AppInput appearance="filled" label="Número do registro profissional" placeholder="Informe seu número de registro" value={values.registrationNumber} onChangeText={(value) => updateValue('registrationNumber', value)} error={errors.registrationNumber} returnKeyType="done" onSubmitEditing={submit} disabled={isSubmitting} startAdornment={<Ionicons name="card-outline" size={19} color={theme.muted.val} />} />
+            <AppInput appearance="filled" label="Número do registro profissional" placeholder="Informe seu número de registro" value={values.registrationNumber} onChangeText={(value) => updateValue('registrationNumber', value)} error={errors.registrationNumber} returnKeyType="next" disabled={isSubmitting} startAdornment={<Ionicons name="card-outline" size={19} color={theme.muted.val} />} />
           </YStack>
         ) : null}
 
+        <YStack gap="$4" pt="$4" borderTopWidth={1} borderColor="$borderColor">
+          <YStack gap="$1"><SizableText color="$color" size="$5" fontWeight="700">Segurança da conta</SizableText><Paragraph color="$muted" size="$2">{passwordHint}</Paragraph></YStack>
+          <AppInput appearance="filled" label="Senha" placeholder="10+ caracteres sem contar espaços" value={values.password} onChangeText={(value) => updateValue('password', value)} error={errors.password} secureTextEntry={!showPassword} type={showPassword ? 'text' : 'password'} autoCapitalize="none" autoCorrect={false} autoComplete="new-password" textContentType="newPassword" disabled={isSubmitting} startAdornment={<Ionicons name="lock-closed-outline" size={19} color={theme.muted.val} />} endAdornment={<PasswordVisibilityButton visible={showPassword} disabled={isSubmitting} color={theme.muted.val} onPress={() => setShowPassword((value) => !value)} />} />
+          <AppInput appearance="filled" label="Confirmar senha" placeholder="Repita sua senha" value={values.passwordConfirmation} onChangeText={(value) => updateValue('passwordConfirmation', value)} error={errors.passwordConfirmation} secureTextEntry={!showPasswordConfirmation} type={showPasswordConfirmation ? 'text' : 'password'} autoCapitalize="none" autoCorrect={false} autoComplete="new-password" textContentType="newPassword" returnKeyType="done" onSubmitEditing={submit} disabled={isSubmitting} startAdornment={<Ionicons name="shield-checkmark-outline" size={19} color={theme.muted.val} />} endAdornment={<PasswordVisibilityButton visible={showPasswordConfirmation} disabled={isSubmitting} color={theme.muted.val} onPress={() => setShowPasswordConfirmation((value) => !value)} />} />
+        </YStack>
+
         {submitError ? (
           <YStack p="$3" borderWidth={1} borderColor="$red9" bg="$backgroundHover" style={{ borderRadius: tokens.radius.$4.val }} role="alert">
-            <SizableText color="$red10" fontWeight="700">Não foi possível criar sua conta</SizableText>
+            <SizableText color="$red10" fontWeight="700">{Object.keys(errors).length ? 'Revise os dados informados' : 'Não foi possível criar sua conta'}</SizableText>
             <Paragraph color="$red10">{submitError}</Paragraph>
           </YStack>
         ) : null}
 
-        <BrandButton size="$5" minH={56} disabled={isSubmitting} onPress={submit} style={{ borderRadius: tokens.radius.$5.val }} accessibilityLabel={isSubmitting ? 'Criando conta' : 'Criar acesso'}>
-          {isSubmitting ? <XStack items="center" gap="$2"><Spinner color="$brandContrast" size="small" /><SizableText color="$brandContrast" fontWeight="800">Criando acesso...</SizableText></XStack> : 'Criar acesso'}
+        <BrandButton size="$5" minH={56} disabled={isSubmitting} onPress={submit} style={{ borderRadius: tokens.radius.$5.val }} accessibilityLabel={isSubmitting ? 'Criando conta' : 'Criar conta'}>
+          {isSubmitting ? <XStack items="center" gap="$2"><Spinner color="$brandContrast" size="small" /><SizableText color="$brandContrast" fontWeight="800">Criando conta...</SizableText></XStack> : 'Criar conta'}
         </BrandButton>
       </YStack>
     </AuthScreen>
