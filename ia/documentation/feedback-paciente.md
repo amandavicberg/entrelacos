@@ -1,7 +1,17 @@
 # Revisão do fluxo do paciente
 
-**Atualizado em:** 2026-10-08  
-**Status:** implementado localmente; validação integrada com contas de paciente e profissional pendente.
+**Atualizado em:** 2026-10-14
+**Status:** correções implementadas e verificadas localmente; reteste integrado no site publicado pendente.
+
+## Complemento do teste de Aline em 2026-10-14
+
+O novo relatório aprovou A02–A07, N01–N08, N10, V01 e V02; N09 não foi executado. Foram tratados o contraste do botão inicial, o texto após tentar cadastrar e-mail já existente, os espaços no nome e a visibilidade de **Sair da conta** nas telas de conexão e aprovação pendente.
+
+`BrandButton` mantém fundo e texto de alto contraste também em hover/press, usando tokens semânticos. As telas `frontend/app/(patient)/connect.tsx` e `pending.tsx` usam botão secundário com superfície, borda e ícone visíveis sem hover. `frontend/lib/registration-form.ts` normaliza espaços no nome; o formulário mostra o valor normalizado ao perder o foco, e `frontend/lib/registration.ts` envia o mesmo valor ao Supabase. A trigger `supabase/migrations/20260823000002_registration_profile_trigger.sql` já removia espaços nas pontas antes de gravar `profiles.full_name`; não foi necessária migration nova.
+
+Com confirmação de e-mail ativada, o Supabase pode responder a um cadastro repetido sem revelar que a conta existe. O cliente não consulta a lista de usuários nem deduz a existência da conta por metadados. A conclusão do cadastro apresenta mensagem condicional e oferece **Entrar** e **Recuperar senha**, em vez de prometer envio. O reenvio também informa apenas que a solicitação foi recebida. `frontend/lib/auth-errors.ts` mantém erros de transporte, limite e configuração separados e não registra dados pessoais nos logs.
+
+O reteste específico está em `ia/documentation/roteiro-reteste-paciente-aline.md`; a conferência profissional das alterações ainda locais está em `ia/documentation/roteiro-reteste-profissional-gustavo.md`. TypeScript, lint, 21 testes de frontend, exportação web, TypeScript e 2 testes de backend passaram. A entrada pública e o cadastro foram conferidos visualmente em desktop e largura de celular; normalização do nome foi conferida no navegador. Não houve login com credenciais do relatório nem teste autenticado remoto nesta validação.
 
 ## Objetivo e funcionamento
 

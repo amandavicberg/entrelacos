@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/auth-context';
 const tabs = [
   { name: 'index', title: 'Início', icon: 'home-outline', selected: 'home' },
   { name: 'minha-agenda', title: 'Agenda', icon: 'calendar-outline', selected: 'calendar' },
-  { name: 'materials', title: 'Materiais', icon: 'folder-open-outline', selected: 'folder-open' },
+  { name: 'meus-materiais', title: 'Materiais', icon: 'folder-open-outline', selected: 'folder-open' },
   { name: 'space', title: 'Meu espaço', icon: 'person-circle-outline', selected: 'person-circle' },
 ] as const;
 

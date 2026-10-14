@@ -127,7 +127,7 @@ export default function PatientHomeScreen() {
             <XStack width="100%" items="center" gap="$2"><Paragraph color="$color" flex={1}>Orientações</Paragraph><SizableText color="$brand" fontWeight="700">{contentLoading ? '…' : observationError ? '—' : observations.length}</SizableText><Ionicons name="chevron-forward" size={17} color={theme.brand.val} accessible={false} /></XStack>
           </Button>
           <Button unstyled role="button" minH="$touchTarget" height="auto" p="$2" bg="$background" rounded="$control"
-            onPress={() => router.navigate('/(patient)/materials' as RelativePathString)}>
+            onPress={() => router.navigate('/(patient)/meus-materiais' as RelativePathString)}>
             <XStack width="100%" items="center" gap="$2"><Paragraph color="$color" flex={1}>Materiais</Paragraph><SizableText color="$brand" fontWeight="700">{contentLoading ? '…' : materialError ? '—' : materials.length}</SizableText><Ionicons name="chevron-forward" size={17} color={theme.brand.val} accessible={false} /></XStack>
           </Button>
         </YStack>

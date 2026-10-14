@@ -10,6 +10,10 @@ function getApiUrl(): string {
 // mas longa o bastante para que o conteúdo não pareça desaparecer após um cold start.
 const apiTimeoutMs = 60_000;
 
+export class ApiRequestError extends Error {
+  constructor(message: string, readonly status: number) { super(message); this.name = 'ApiRequestError'; }
+}
+
 async function fetchApi(url: string, init: RequestInit): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), apiTimeoutMs);
@@ -39,7 +43,7 @@ async function requestJson<T>(path: string, accessToken: string, init: RequestIn
     },
   });
   const payload = (await response.json().catch(() => null)) as (T & { error?: string }) | null;
-  if (!response.ok || !payload) throw new Error(payload?.error ?? 'Não foi possível concluir a solicitação.');
+  if (!response.ok || !payload) throw new ApiRequestError(payload?.error ?? 'Não foi possível concluir a solicitação.', response.status);
   return payload;
 }
 
@@ -147,7 +151,7 @@ export type ProfessionalActivity = {
 };
 export type AvailabilityWindow = { id: string; weekday: number; startMinute: number; endMinute: number; slotMinutes: number };
 export type AvailableSlot = { startsAt: string; endsAt: string };
-export type FollowUpMaterial = { id: string; title: string; description: string | null; kind: 'ebook' | 'podcast' | 'video' | 'pdf' | 'audio' | 'other'; source: 'external' | 'storage'; externalUrl: string | null; mimeType: string | null; sizeBytes: number | null; createdAt: string; shareId?: string; relationshipId?: string };
+export type FollowUpMaterial = { id: string; title: string; description: string | null; kind: 'ebook' | 'podcast' | 'video' | 'pdf' | 'audio' | 'other'; source: 'external' | 'storage'; externalUrl: string | null; mimeType: string | null; sizeBytes: number | null; createdAt: string; shareId?: string; relationshipId?: string; sharedAt?: string; sharedRelationshipIds?: string[] };
 export type TimelineItem = { id: string; type: 'observation' | 'appointment' | 'material'; at: string; label: string; content?: string };
 export type MaterialUsage = { count: number; sizeBytes: number; quotaBytes: number };
 export type PatientRelationship = { relationshipId: string; professionalName: string; approvedAt: string | null };
@@ -239,6 +243,10 @@ export async function listTimeline(accessToken: string, relationshipId: string, 
 
 export async function listMaterials(accessToken: string, patient = false): Promise<{ materials: FollowUpMaterial[]; usage?: MaterialUsage }> {
   return requestJson(patient ? '/v1/patient/materials' : '/v1/professional/materials', accessToken);
+}
+
+export async function listProfessionalPatientMaterials(accessToken: string, relationshipId: string): Promise<FollowUpMaterial[]> {
+  return (await requestJson<{ materials: FollowUpMaterial[] }>(`/v1/professional/patients/${relationshipId}/materials`, accessToken)).materials;
 }
 
 export async function createExternalMaterial(accessToken: string, input: { title: string; description?: string; kind: FollowUpMaterial['kind']; externalUrl: string }): Promise<string> {

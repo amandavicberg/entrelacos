@@ -1,4 +1,4 @@
-import type { FollowUpAppointment } from './api';
+import type { FollowUpAppointment, FollowUpObservation } from './api';
 
 export const careTimeZone = 'America/Sao_Paulo';
 
@@ -37,6 +37,42 @@ export function minutesFromTime(value: string): number | null {
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return null;
   const [hours, minutes] = value.split(':').map(Number);
   return hours * 60 + minutes;
+}
+
+export type ObservationDayGroup = {
+  day: string;
+  label: string;
+  observations: FollowUpObservation[];
+};
+
+const observationTimeFormatter = new Intl.DateTimeFormat('pt-BR', {
+  timeZone: careTimeZone, hour: '2-digit', minute: '2-digit', hour12: false,
+});
+const observationDayFormatter = new Intl.DateTimeFormat('pt-BR', {
+  timeZone: 'UTC', day: 'numeric', month: 'long', year: 'numeric',
+});
+
+export function observationTime(value: string): string {
+  return observationTimeFormatter.format(new Date(value));
+}
+
+export function groupObservationsByDay(observations: FollowUpObservation[]): ObservationDayGroup[] {
+  const groups = new Map<string, FollowUpObservation[]>();
+  const ordered = [...observations].sort((left, right) =>
+    Date.parse(right.occurredAt) - Date.parse(left.occurredAt));
+
+  for (const observation of ordered) {
+    const day = dateKey(observation.occurredAt);
+    const group = groups.get(day) ?? [];
+    group.push(observation);
+    groups.set(day, group);
+  }
+
+  return [...groups].map(([day, items]) => ({
+    day,
+    label: observationDayFormatter.format(new Date(`${day}T12:00:00Z`)),
+    observations: items,
+  }));
 }
 
 export function professionalSummary(appointments: FollowUpAppointment[], now: number) {

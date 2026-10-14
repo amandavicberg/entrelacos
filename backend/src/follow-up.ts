@@ -363,7 +363,10 @@ export async function listTimeline(
   }
   const timeline = [
     ...(observations.data ?? []).map((item) => ({ id: item.id, type: 'observation', at: item.occurred_at, label: 'Observação registrada', content: item.content })),
-    ...(appointmentEvents.data ?? []).map((item) => ({ id: item.id, type: 'appointment', at: item.occurred_at, label: `Agenda: ${item.event_type}` })),
+    ...(appointmentEvents.data ?? []).map((item) => ({
+      id: item.id, type: 'appointment', at: item.occurred_at,
+      label: ({ created: 'Consulta agendada', rescheduled: 'Consulta reagendada', confirmed: 'Consulta confirmada', cancelled: 'Consulta cancelada' } as Record<string, string>)[item.event_type] ?? 'Consulta atualizada',
+    })),
     ...(shares.data ?? []).map((item) => ({ id: item.id, type: 'material', at: item.shared_at, label: 'Material compartilhado' })),
   ].sort((left, right) => Date.parse(right.at) - Date.parse(left.at));
   sendJson(response, 200, { timeline });
@@ -377,8 +380,20 @@ export async function listMaterials(request: IncomingMessage, response: ServerRe
       .eq('professional_id', actor.id).eq('status', 0).order('created_at', { ascending: false });
     if (error) databaseFailure('Falha ao listar materiais', 'Não foi possível carregar os materiais.', error);
     const materials = (data ?? []).map(materialOutput);
+    const materialIds = materials.map((item) => item.id);
+    const { data: shares, error: sharesError } = materialIds.length
+      ? await supabase.from('patient_material_shares')
+        .select('material_id, relationship_id').in('material_id', materialIds).eq('status', 0)
+      : { data: [], error: null };
+    if (sharesError) databaseFailure('Falha ao listar destinatários dos materiais', 'Não foi possível carregar os compartilhamentos.', sharesError);
+    const recipients = new Map<string, string[]>();
+    for (const share of shares ?? []) {
+      const ids = recipients.get(share.material_id) ?? [];
+      ids.push(share.relationship_id);
+      recipients.set(share.material_id, ids);
+    }
     sendJson(response, 200, {
-      materials,
+      materials: materials.map((item) => ({ ...item, sharedRelationshipIds: recipients.get(item.id) ?? [] })),
       usage: {
         count: materials.filter((item) => item.source === 'storage').length,
         sizeBytes: materials.reduce((total, item) => total + (item.sizeBytes ?? 0), 0),
@@ -407,6 +422,30 @@ export async function listMaterials(request: IncomingMessage, response: ServerRe
       return raw ? [{ ...materialOutput(raw), shareId: share.id, relationshipId: share.relationship_id }] : [];
     }),
   });
+}
+
+export async function listProfessionalPatientMaterials(
+  request: IncomingMessage,
+  response: ServerResponse,
+  relationshipId: string,
+): Promise<void> {
+  const actor = await authenticate(request, 'professional');
+  await activeRelationship(actor, relationshipId);
+  const { data: shares, error } = await supabase.from('patient_material_shares')
+    .select('id, material_id, shared_at').eq('relationship_id', relationshipId)
+    .eq('status', 0).order('shared_at', { ascending: false });
+  if (error) databaseFailure('Falha ao listar materiais do paciente', 'Não foi possível carregar os materiais deste paciente.', error);
+  const materialIds = [...new Set((shares ?? []).map((share) => share.material_id))];
+  if (!materialIds.length) return sendJson(response, 200, { materials: [] });
+  const { data: materials, error: materialError } = await supabase.from('professional_materials')
+    .select('id, title, description, kind, source, external_url, mime_type, size_bytes, created_at')
+    .eq('professional_id', actor.id).eq('status', 0).in('id', materialIds);
+  if (materialError) databaseFailure('Falha ao carregar materiais do paciente', 'Não foi possível carregar os materiais deste paciente.', materialError);
+  const byId = new Map((materials ?? []).map((item) => [item.id, item]));
+  sendJson(response, 200, { materials: (shares ?? []).flatMap((share) => {
+    const material = byId.get(share.material_id);
+    return material ? [{ ...materialOutput(material), shareId: share.id, sharedAt: share.shared_at }] : [];
+  }) });
 }
 
 export async function createExternalMaterial(request: IncomingMessage, response: ServerResponse): Promise<void> {

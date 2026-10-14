@@ -36,6 +36,10 @@ export const initialValues: FormValues = {
   registrationNumber: '',
 };
 
+export function normalizeFullName(value: string): string {
+  return value.trim().replace(/\s+/g, ' ');
+}
+
 export function validateRegistration(values: FormValues): FormErrors {
   const errors: FormErrors = {};
   const requiredFields: (keyof FormValues)[] = [
@@ -50,7 +54,7 @@ export function validateRegistration(values: FormValues): FormErrors {
   for (const field of requiredFields) {
     if (!values[field].trim()) errors[field] = 'Preencha este campo.';
   }
-  if (values.fullName.trim().length > 160) errors.fullName = 'Use até 160 caracteres.';
+  if (normalizeFullName(values.fullName).length > 160) errors.fullName = 'Use até 160 caracteres.';
   if (values.email && !/^\S+@\S+\.\S+$/.test(values.email.trim())) {
     errors.email = 'Informe um e-mail válido.';
   }

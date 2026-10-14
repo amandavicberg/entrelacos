@@ -33,6 +33,7 @@ export default function AgendaScreen() {
   const { width, fontScale } = useWindowDimensions();
   const wide = width >= 800 && fontScale < 1.3;
   const { session } = useAuth();
+  const [now, setNow] = useState(() => Date.now());
   const [section, setSection] = useState<'consultations' | 'availability'>('consultations');
   const [month, setMonth] = useState(() => monthKey(dateKey(new Date())));
   const [selectedDay, setSelectedDay] = useState(() => dateKey(new Date()));
@@ -77,9 +78,10 @@ export default function AgendaScreen() {
   }, [session]);
 
   useFocusEffect(useCallback(() => {
+    setNow(Date.now());
     void loadAgenda();
     void loadAvailability();
-    const timer = setInterval(() => { void loadAgenda(); }, 60_000);
+    const timer = setInterval(() => { setNow(Date.now()); void loadAgenda(); }, 60_000);
     return () => clearInterval(timer);
   }, [loadAgenda, loadAvailability]));
 
@@ -121,7 +123,10 @@ export default function AgendaScreen() {
   const selectedAppointments = active.filter((item) => dateKey(item.startsAt) === selectedDay)
     .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
   const names = new Map(patients.map((patient) => [patient.relationshipId, patient.patientName]));
-  const today = dateKey(new Date());
+  const today = dateKey(new Date(now));
+  const weekdayAppointments = active.filter((item) => Date.parse(item.startsAt) >= now
+    && new Date(`${dateKey(item.startsAt)}T12:00:00Z`).getUTCDay() === weekday)
+    .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
   const selectedDate = new Date(`${selectedDay}T12:00:00Z`);
   const selectedDateLabel = selectedDate.toLocaleDateString('pt-BR', {
     timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long',
@@ -274,6 +279,17 @@ export default function AgendaScreen() {
               {weekdays[weekday]}, {startTime}–{endTime}: até {previewCount} {previewCount === 1 ? 'horário' : 'horários'} por semana.
             </Paragraph>
           </XStack> : null}
+          <YStack gap="$2" p="$3" bg="$background" rounded="$control" borderWidth={1} borderColor="$borderColor">
+            <SizableText color="$color" fontWeight="700">Pacientes agendados · {weekdays[weekday]}</SizableText>
+            <Paragraph color="$muted" size="$2">Consultas futuras nesse dia da semana; o período aberto continua disponível para outros pacientes.</Paragraph>
+            {agendaLoading ? <Paragraph color="$muted" size="$2">Buscando consultas…</Paragraph>
+              : agendaError ? <Paragraph color="$declinedColor" size="$2">Não foi possível consultar os agendamentos.</Paragraph>
+                : weekdayAppointments.length === 0 ? <Paragraph color="$muted" size="$2">Nenhum paciente agendado nesse dia.</Paragraph>
+                  : weekdayAppointments.map((item) => <XStack key={item.id} justify="space-between" gap="$2" flexWrap="wrap">
+                    <SizableText color="$color" fontWeight="600" size="$2">{names.get(item.relationshipId) ?? 'Paciente vinculado'}</SizableText>
+                    <Paragraph color="$muted" size="$2">{new Date(item.startsAt).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' })} · {appointmentTime(item.startsAt)}</Paragraph>
+                  </XStack>)}
+          </YStack>
           {formFeedback ? <YStack role="status" bg={formFeedbackIsSuccess ? '$soft' : '$declinedBackground'} p="$3" rounded="$control">
             <Paragraph color={formFeedbackIsSuccess ? '$brand' : '$declinedColor'} fontWeight="600">{formFeedback}</Paragraph>
           </YStack> : null}

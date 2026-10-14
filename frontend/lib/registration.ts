@@ -1,5 +1,6 @@
 import * as Linking from 'expo-linking';
 import type { AppRole } from './registration.types';
+import { normalizeFullName } from './registration-form';
 import { getSupabaseClient } from './supabase';
 
 export type RegistrationData = {
@@ -24,7 +25,7 @@ export async function registerUser(data: RegistrationData) {
     options: {
       emailRedirectTo: confirmationRedirectUrl,
       data: {
-        full_name: data.fullName,
+        full_name: normalizeFullName(data.fullName),
         birth_date: data.birthDate,
         phone: data.phone,
         role: data.role,

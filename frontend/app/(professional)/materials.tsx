@@ -99,6 +99,7 @@ export default function MaterialsScreen() {
   const allVisibleSelected = visiblePatients.length > 0
     && visiblePatients.every((patient) => selectedPatients.includes(patient.relationshipId));
   const sharingMaterial = materials.find((item) => item.id === sharingMaterialId);
+  const patientNames = useMemo(() => new Map(patients.map((patient) => [patient.relationshipId, patient.patientName])), [patients]);
 
   const usagePercent = usage && usage.quotaBytes > 0
     ? Math.min(100, (usage.sizeBytes / usage.quotaBytes) * 100) : 0;
@@ -227,6 +228,7 @@ export default function MaterialsScreen() {
       setSelectedPatients([]);
       setShareQuery('');
       setShareFeedback('');
+      await load();
     } catch (cause) {
       setShareFeedback(cause instanceof Error ? cause.message : 'Não foi possível compartilhar o material.');
     } finally { setSaving(false); }
@@ -372,6 +374,14 @@ export default function MaterialsScreen() {
             </YStack>
           </XStack>
           {item.description ? <Paragraph color="$muted">{item.description}</Paragraph> : null}
+          <YStack gap="$1" p="$3" bg="$background" rounded="$control">
+            <SizableText color="$color" fontWeight="700" size="$2">Compartilhado com</SizableText>
+            <Paragraph color="$muted" size="$2">
+              {(item.sharedRelationshipIds ?? []).filter((id) => patientNames.has(id)).length > 0
+                ? (item.sharedRelationshipIds ?? []).map((id) => patientNames.get(id)).filter(Boolean).join(', ')
+                : 'Nenhum paciente ativo ainda.'}
+            </Paragraph>
+          </YStack>
           <XStack gap="$2" flexWrap="wrap" pt="$2" borderTopWidth={1} borderColor="$borderColor">
             <Button minH="$touchTarget" bg="$soft" color="$brand"
               icon={<Ionicons name="open-outline" size={18} color={theme.brand.val} accessible={false} />}

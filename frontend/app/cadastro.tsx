@@ -9,7 +9,7 @@ import { BrandButton } from '@/components/brand-button';
 import { FeedbackState } from '@/components/feedback-state';
 import { type AppRole, useAuth } from '@/contexts/auth-context';
 import { authErrorMessage, reportAuthError } from '@/lib/auth-errors';
-import { initialValues, validateRegistration, birthDateToIso, formatBirthDate, formatPhone, passwordHint, type FormValues, type FormErrors } from '@/lib/registration-form';
+import { initialValues, validateRegistration, birthDateToIso, formatBirthDate, formatPhone, normalizeFullName, passwordHint, type FormValues, type FormErrors } from '@/lib/registration-form';
 import { registerUser, resendConfirmationEmail } from '@/lib/registration';
 
 const loginPath = '/login' as RelativePathString;
@@ -82,7 +82,7 @@ export default function RegistrationScreen() {
     setIsSubmitting(true);
     try {
       const { error } = await registerUser({
-        fullName: values.fullName.trim(),
+        fullName: normalizeFullName(values.fullName),
         birthDate: birthDateToIso(values.birthDate),
         phone: values.phone.trim(),
         email: values.email.trim().toLowerCase(),
@@ -114,7 +114,7 @@ export default function RegistrationScreen() {
       const { error } = await resendConfirmationEmail(values.email.trim().toLowerCase());
       if (error) throw error;
       setResendCountdown(60);
-      setResendMessage('Solicitação recebida. Confira sua caixa de entrada e o spam.');
+      setResendMessage('Solicitação recebida. Se houver uma confirmação pendente, confira a caixa de entrada e o spam.');
     } catch (error) {
       reportAuthError('resend', error);
       setResendError(authErrorMessage(error, 'resend'));
@@ -128,29 +128,34 @@ export default function RegistrationScreen() {
   if (isComplete) {
     return (
       <AuthScreen
-        title="Confirme seu e-mail"
-        description="Confira sua caixa de entrada para confirmar seu acesso. Se você já tem uma conta, pode entrar com seus dados."
+        title="Solicitação recebida"
+        description="Se este endereço ainda não tiver uma conta, enviaremos um e-mail para confirmar o cadastro. Se você já tem conta, entre ou recupere sua senha."
         footer={
-          <Link href={loginPath} replace asChild>
-            <Button chromeless self="center" color="$brand" fontWeight="800">Voltar para o login</Button>
-          </Link>
+          <XStack justify="center" gap="$2" flexWrap="wrap">
+            <Link href={loginPath} replace asChild>
+              <Button chromeless color="$brand" fontWeight="800" minH="$touchTarget">Entrar</Button>
+            </Link>
+            <Link href="/forgot-password" asChild>
+              <Button chromeless color="$brand" fontWeight="800" minH="$touchTarget">Recuperar senha</Button>
+            </Link>
+          </XStack>
         }
       >
         <YStack gap="$4">
           <YStack p="$4" gap="$2" bg="$backgroundHover" borderWidth={1} borderColor="$borderColor" style={{ borderRadius: tokens.radius.$5.val }}>
             <XStack items="center" gap="$2">
               <Ionicons name="mail-unread-outline" size={22} color={theme.brand.val} />
-              <SizableText color="$color" fontWeight="800">Próximo passo</SizableText>
+            <SizableText color="$color" fontWeight="800">Confira este endereço</SizableText>
             </XStack>
             <SizableText color="$color" fontWeight="600">{values.email.trim().toLowerCase()}</SizableText>
-            <Paragraph color="$muted">Procure o e-mail na sua caixa de entrada e, se necessário, no spam.</Paragraph>
+            <Paragraph color="$muted">Se for seu primeiro cadastro, procure a confirmação na caixa de entrada e no spam. O envio pode levar alguns minutos.</Paragraph>
           </YStack>
           <YStack gap="$2">
             {resendCountdown > 0 ? (
               <Paragraph color="$muted">Você poderá reenviar em {resendCountdown}s.</Paragraph>
             ) : (
               <BrandButton size="$5" minH={52} disabled={isResending} onPress={resendEmail} style={{ borderRadius: tokens.radius.$5.val }}>
-                {isResending ? <XStack items="center" gap="$2"><Spinner color="$brandContrast" size="small" /><SizableText color="$brandContrast">Reenviando...</SizableText></XStack> : 'Reenviar e-mail de confirmação'}
+                {isResending ? <XStack items="center" gap="$2"><Spinner color="$brandContrast" size="small" /><SizableText color="$brandContrast">Solicitando...</SizableText></XStack> : 'Solicitar novo e-mail de confirmação'}
               </BrandButton>
             )}
             {resendMessage ? <Paragraph color="$brand">{resendMessage}</Paragraph> : null}
@@ -218,7 +223,7 @@ export default function RegistrationScreen() {
 
         <YStack gap="$4">
           <SizableText color="$color" size="$5" fontWeight="700">Seus dados</SizableText>
-          <AppInput appearance="filled" maxLength={160} label="Nome completo" placeholder="Seu nome completo" value={values.fullName} onChangeText={(value) => updateValue('fullName', value)} error={errors.fullName} autoCapitalize="words" autoComplete="name" returnKeyType="next" disabled={isSubmitting} startAdornment={<Ionicons name="person-outline" size={19} color={theme.muted.val} />} />
+          <AppInput appearance="filled" maxLength={160} label="Nome completo" placeholder="Seu nome completo" value={values.fullName} onChangeText={(value) => updateValue('fullName', value)} onBlur={() => updateValue('fullName', normalizeFullName(values.fullName))} error={errors.fullName} autoCapitalize="words" autoComplete="name" returnKeyType="next" disabled={isSubmitting} startAdornment={<Ionicons name="person-outline" size={19} color={theme.muted.val} />} />
           <AppInput appearance="filled" label="Data de nascimento" placeholder="DD/MM/AAAA" value={values.birthDate} onChangeText={(value) => updateValue('birthDate', formatBirthDate(value))} error={errors.birthDate} keyboardType="number-pad" disabled={isSubmitting} startAdornment={<Ionicons name="calendar-outline" size={19} color={theme.muted.val} />} />
           <AppInput appearance="filled" label="Telefone" placeholder="(00) 00000-0000" value={values.phone} onChangeText={(value) => updateValue('phone', formatPhone(value))} error={errors.phone} keyboardType="phone-pad" autoComplete="tel" disabled={isSubmitting} startAdornment={<Ionicons name="call-outline" size={19} color={theme.muted.val} />} />
           <AppInput appearance="filled" maxLength={254} type="email" label="E-mail" placeholder="seuemail@exemplo.com" value={values.email} onChangeText={(value) => updateValue('email', value)} error={errors.email} autoCapitalize="none" autoCorrect={false} autoComplete="email" keyboardType="email-address" textContentType="emailAddress" disabled={isSubmitting} startAdornment={<Ionicons name="mail-outline" size={19} color={theme.muted.val} />} />

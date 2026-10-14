@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, type RelativePathString, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { getTokens, Paragraph, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { Button, getTokens, Paragraph, SizableText, useTheme, XStack, YStack } from 'tamagui';
 
 import { AuthScreen } from '@/components/auth-screen';
 import { BrandButton } from '@/components/brand-button';
@@ -48,9 +48,12 @@ export default function PatientPendingScreen() {
           Verificar novamente
         </BrandButton>
         {signOutError ? <Paragraph role="alert" color="$red10">{signOutError}</Paragraph> : null}
-        <BrandButton chromeless borderWidth={1} borderColor="$brand" color="$brand" minH={50} onPress={() => void handleSignOut()} disabled={leaving} style={{ borderRadius: tokens.radius.$5.val }}>
+        <Button bg="$soft" color="$brand" borderWidth={1} borderColor="$borderColor" minH={50}
+          hoverStyle={{ bg: '$backgroundPress' }} pressStyle={{ bg: '$backgroundPress' }}
+          icon={<Ionicons name="log-out-outline" size={19} color={theme.brand.val} accessible={false} />}
+          onPress={() => void handleSignOut()} disabled={leaving} style={{ borderRadius: tokens.radius.$5.val }}>
           {leaving ? 'Saindo…' : 'Sair da conta'}
-        </BrandButton>
+        </Button>
       </YStack>
     </AuthScreen>
   );

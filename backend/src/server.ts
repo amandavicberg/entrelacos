@@ -13,6 +13,7 @@ import {
   getProfessionalPatient,
   listAppointments,
   listMaterials,
+  listProfessionalPatientMaterials,
   listObservations,
   listPatientRelationships,
   listProfessionalPatients,
@@ -71,6 +72,8 @@ const server = createServer(async (request, response) => {
     if (match && request.method === 'POST') return await cancelAppointment(request, response, match[1], match[2]);
     match = new RegExp(`^/v1/professional/patients/${id}/timeline$`, 'i').exec(pathname);
     if (match && request.method === 'GET') return await listTimeline(request, response, match[1]);
+    match = new RegExp(`^/v1/professional/patients/${id}/materials$`, 'i').exec(pathname);
+    if (match && request.method === 'GET') return await listProfessionalPatientMaterials(request, response, match[1]);
     match = new RegExp(`^/v1/professional/patients/${id}/documents$`, 'i').exec(pathname);
     if (match && request.method === 'GET') return await listPatientDocuments(request, response, match[1]);
     match = new RegExp(`^/v1/professional/patients/${id}/messages$`, 'i').exec(pathname);

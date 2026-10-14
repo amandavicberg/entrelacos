@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
-import { Button, Paragraph, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { Button, Dialog, Paragraph, SizableText, useTheme, XStack, YStack } from 'tamagui';
 
 import { AppCard } from '@/components/app-card';
 import { BrandButton } from '@/components/brand-button';
@@ -13,7 +13,7 @@ import { PatientScreen } from '@/components/patient/patient-screen';
 import { useAuth } from '@/contexts/auth-context';
 import { dateKey, monthDays, monthKey } from '@/lib/calendar';
 import {
-  bookPatientAppointment, listAppointments, listPatientAvailableSlots, respondToAppointment,
+  ApiRequestError, bookPatientAppointment, listAppointments, listPatientAvailableSlots, respondToAppointment,
   type AvailableSlot, type FollowUpAppointment,
 } from '@/lib/api';
 
@@ -43,6 +43,7 @@ export default function PatientAgendaScreen() {
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [bookingConflict, setBookingConflict] = useState('');
 
   const loadAppointments = useCallback(async () => {
     if (!session?.access_token) return;
@@ -83,7 +84,9 @@ export default function PatientAgendaScreen() {
       await Promise.all([loadAppointments(), loadSlots()]);
     } catch (cause) {
       setSelectedSlot(null);
-      setFeedback(cause instanceof Error ? cause.message : 'Não foi possível agendar.');
+      const message = cause instanceof Error ? cause.message : 'Não foi possível agendar.';
+      if (cause instanceof ApiRequestError && cause.status === 409) setBookingConflict(message);
+      else setFeedback(message);
       await loadSlots();
     } finally { setBusy(false); }
   }
@@ -113,6 +116,16 @@ export default function PatientAgendaScreen() {
   });
 
   return <PatientScreen title="Minha agenda" description="Escolha um dia para agendar e acompanhe suas próximas consultas.">
+    <Dialog open={Boolean(bookingConflict)} onOpenChange={(open) => { if (!open) setBookingConflict(''); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay bg="$overlay" />
+        <Dialog.Content width="90%" maxW={430} bg="$surface" rounded="$panel" p="$5" gap="$3">
+          <Dialog.Title color="$color" fontFamily="$heading" fontSize={22}>Horário ocupado</Dialog.Title>
+          <Dialog.Description color="$muted">{bookingConflict} A agenda foi atualizada com os horários livres.</Dialog.Description>
+          <BrandButton self="flex-end" onPress={() => setBookingConflict('')}>Escolher outro horário</BrandButton>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog>
     {feedback ? <AppCard p="$3" background="$accentSoft" borderColor="$logoBorder"><Paragraph role="status" color="$color">{feedback}</Paragraph></AppCard> : null}
     <XStack items="center" gap="$2" self="flex-start" bg="$accentSoft" px="$3" py="$2" rounded="$12">
       <Ionicons name="time-outline" size={16} color={theme.accentText.val} accessible={false} />

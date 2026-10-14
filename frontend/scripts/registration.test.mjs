@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { authErrorMessage, reportAuthError } from '../lib/auth-errors.ts';
-import { initialValues, validateRegistration, birthDateToIso, formatBirthDate, formatPhone } from '../lib/registration-form.ts';
+import { initialValues, validateRegistration, birthDateToIso, formatBirthDate, formatPhone, normalizeFullName } from '../lib/registration-form.ts';
 
 const patient = { ...initialValues, fullName: 'Pessoa de teste', birthDate: '29/02/2000', phone: '(21) 90000-0000', email: 'teste@example.com', password: 'Senha-de-teste-123', passwordConfirmation: 'Senha-de-teste-123' };
 test('cadastro de paciente e profissional validam requisitos próprios', () => {
@@ -28,6 +28,10 @@ test('data brasileira e telefone mantêm valores esperados para o cadastro', () 
   assert.equal(formatBirthDate('29022000'), '29/02/2000');
   assert.equal(formatPhone('2133334444'), '(21) 3333-4444');
   assert.equal(formatPhone('21988887777'), '(21) 98888-7777');
+});
+test('nome é normalizado antes de ser enviado e exibido sem espaços extras', () => {
+  assert.equal(normalizeFullName('  Ana   Maria  '), 'Ana Maria');
+  assert.deepEqual(validateRegistration({ ...patient, fullName: '  Ana   Maria  ' }), {});
 });
 test('falhas de envio, rede, confirmação e banco têm orientações distintas', () => {
   assert.match(authErrorMessage({ code: 'email_address_not_authorized' }), /envio de e-mails ainda não está liberado/);
