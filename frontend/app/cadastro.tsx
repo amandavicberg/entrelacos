@@ -134,7 +134,7 @@ export default function RegistrationScreen() {
     return (
       <AuthScreen
         title="Solicitação recebida"
-        description="Se este endereço ainda não tiver uma conta, enviaremos um e-mail para confirmar o cadastro. Se você já tem conta, entre ou recupere sua senha."
+        description="Se este e-mail já estiver cadastrado, nenhuma segunda conta será criada e um novo e-mail de confirmação pode não chegar. Nesse caso, entre ou recupere sua senha. Se for seu primeiro cadastro, confira a confirmação."
         footer={
           <XStack justify="center" gap="$2" flexWrap="wrap">
             <Link href={loginPath} replace asChild>
