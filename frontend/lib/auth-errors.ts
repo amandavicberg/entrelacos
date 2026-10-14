@@ -1,5 +1,10 @@
 type AuthOperation = 'signup' | 'login' | 'resend' | 'recovery';
 
+export function isExistingAccountSignupError(error: unknown): boolean {
+  const value = error && typeof error === 'object' ? error as { code?: string; message?: string } : {};
+  return value.code === 'user_already_exists' || value.message?.toLowerCase().includes('already registered') === true;
+}
+
 /** Translate service errors without exposing raw responses, credentials or personal data. */
 export function authErrorMessage(error: unknown, operation: AuthOperation = 'signup'): string {
   const value = error && typeof error === 'object' ? error as { code?: string; message?: string; status?: number; name?: string } : {};
@@ -13,7 +18,7 @@ export function authErrorMessage(error: unknown, operation: AuthOperation = 'sig
   if (code === 'over_email_send_rate_limit' || code === 'over_request_rate_limit' || value.status === 429 || message.includes('rate limit')) {
     return 'Muitas tentativas em pouco tempo. Aguarde antes de tentar novamente; o envio de e-mails pode levar mais tempo para ser liberado.';
   }
-  if (code === 'user_already_exists' || message.includes('already registered')) return 'Não foi possível usar esses dados. Se você já tem conta, entre ou recupere sua senha.';
+  if (isExistingAccountSignupError(error)) return 'Não foi possível usar esses dados. Se você já tem conta, entre ou recupere sua senha.';
   if (code === 'signup_disabled' || message.includes('signups not allowed')) return 'Novos cadastros estão temporariamente indisponíveis. Tente novamente mais tarde.';
   if (message.includes('database error')) return 'Encontramos um problema ao preparar seu perfil. Entre em contato com a equipe do EntreLaços.';
   if (message.includes('sending confirmation') || message.includes('smtp')) return 'Não conseguimos enviar a confirmação agora. Tente novamente mais tarde ou entre em contato com a equipe.';

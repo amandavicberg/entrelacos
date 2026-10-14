@@ -8,7 +8,7 @@ import { AppInput } from '@/components/app-input';
 import { BrandButton } from '@/components/brand-button';
 import { FeedbackState } from '@/components/feedback-state';
 import { type AppRole, useAuth } from '@/contexts/auth-context';
-import { authErrorMessage, reportAuthError } from '@/lib/auth-errors';
+import { authErrorMessage, isExistingAccountSignupError, reportAuthError } from '@/lib/auth-errors';
 import { initialValues, validateRegistration, birthDateToIso, formatBirthDate, formatPhone, normalizeFullName, passwordHint, type FormValues, type FormErrors } from '@/lib/registration-form';
 import { registerUser, resendConfirmationEmail } from '@/lib/registration';
 
@@ -96,6 +96,11 @@ export default function RegistrationScreen() {
       setResendCountdown(60);
       setIsComplete(true);
     } catch (error) {
+      if (isExistingAccountSignupError(error)) {
+        setResendCountdown(60);
+        setIsComplete(true);
+        return;
+      }
       reportAuthError('signup', error);
       setSubmitError(authErrorMessage(error));
     } finally {

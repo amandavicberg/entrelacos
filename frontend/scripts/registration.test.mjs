@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { authErrorMessage, reportAuthError } from '../lib/auth-errors.ts';
+import { authErrorMessage, isExistingAccountSignupError, reportAuthError } from '../lib/auth-errors.ts';
 import { initialValues, validateRegistration, birthDateToIso, formatBirthDate, formatPhone, normalizeFullName } from '../lib/registration-form.ts';
 
 const patient = { ...initialValues, fullName: 'Pessoa de teste', birthDate: '29/02/2000', phone: '(21) 90000-0000', email: 'teste@example.com', password: 'Senha-de-teste-123', passwordConfirmation: 'Senha-de-teste-123' };
@@ -41,6 +41,11 @@ test('falhas de envio, rede, confirmação e banco têm orientações distintas'
   assert.match(authErrorMessage({ name: 'AuthRetryableFetchError' }), /internet/);
   assert.match(authErrorMessage({ code: 'invalid_credentials' }, 'login'), /senha incorretos/);
   assert.doesNotMatch(authErrorMessage({ message: 'secret-token-and-email@example.com' }), /secret-token|example.com/);
+});
+test('cadastro repetido usa o mesmo retorno neutro nos erros explícitos do provedor', () => {
+  assert.equal(isExistingAccountSignupError({ code: 'user_already_exists' }), true);
+  assert.equal(isExistingAccountSignupError({ message: 'User already registered' }), true);
+  assert.equal(isExistingAccountSignupError({ code: 'weak_password' }), false);
 });
 test('diagnóstico nunca registra mensagens, metadados ou tokens', () => {
   const oldWarn = console.warn;
