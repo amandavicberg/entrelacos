@@ -9,6 +9,7 @@ export default function RootHtml({ children }: { children: ReactNode }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="google" content="notranslate" />
+        <link rel="icon" type="image/png" sizes="64x64" href="/favicon-marfim.png" />
         <ScrollViewStyleReset />
         {headNodes}
       </head>
