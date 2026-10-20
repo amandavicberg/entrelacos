@@ -4,7 +4,8 @@ import type { PropsWithChildren } from 'react';
 import { useState } from 'react';
 import { Modal, useWindowDimensions } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
-import { Button, Paragraph, Sheet, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { Paragraph, Sheet, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { AppButton as Button } from '@/components/app-button';
 
 import { AppCard } from '@/components/app-card';
 import { FeedbackState } from '@/components/feedback-state';

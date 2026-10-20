@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Link, Redirect, type RelativePathString } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, getTokens, Paragraph, SizableText, Spinner, useTheme, XStack, YStack } from 'tamagui';
+import { getTokens, Paragraph, SizableText, Spinner, useTheme, XStack, YStack } from 'tamagui';
+import { AppButton as Button } from '@/components/app-button';
 
 import { AuthScreen } from '@/components/auth-screen';
 import { AppInput } from '@/components/app-input';
@@ -130,7 +131,7 @@ function LoginContent() {
     <AuthScreen
       compact
       maxW={tokens.size.loginContent.val}
-      brand={<BrandLogo width={176} framed={false} />}
+      brand={<BrandLogo width={145} framed={false} />}
       title="Entre na sua conta"
       description="Escolha seu perfil e continue de onde parou."
       footer={

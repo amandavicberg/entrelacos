@@ -3,7 +3,8 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
-import { Button, Dialog, Paragraph, Progress, ScrollView, SizableText, TextArea, useTheme, XStack, YStack } from 'tamagui';
+import { Dialog, Paragraph, Progress, ScrollView, SizableText, TextArea, useTheme, XStack, YStack } from 'tamagui';
+import { AppButton as Button } from '@/components/app-button';
 
 import { AppCard } from '@/components/app-card';
 import { AppHeader } from '@/components/app-header';
@@ -272,7 +273,7 @@ export default function MaterialsScreen() {
           placeholder="Ex.: Guia de preparação" maxLength={160} />
         <YStack gap="$2">
           <SizableText color="$color" fontWeight="700">Descrição <SizableText color="$muted" fontWeight="400">(opcional)</SizableText></SizableText>
-          <TextArea aria-label="Descrição opcional" value={description} onChangeText={setDescription}
+          <TextArea rounded="$control" bg="$background" p="$4" fontFamily="$body" color="$color" placeholderTextColor="$muted" focusStyle={{ borderColor: '$brand', borderWidth: 2 }} aria-label="Descrição opcional" value={description} onChangeText={setDescription}
             placeholder="Conte ao paciente por que este conteúdo pode ajudar"
             maxLength={2000} minH={90} borderColor="$borderColor" />
         </YStack>

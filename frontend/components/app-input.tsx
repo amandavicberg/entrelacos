@@ -36,11 +36,11 @@ export function AppInput({
           gap="$2"
           px="$3"
           flexWrap={endAdornment && fontScale > 1.3 ? 'wrap' : 'nowrap'}
-          bg={filled ? '$soft' : outlined ? '$surface' : '$background'}
-          borderWidth={filled && !focused && !error ? 0 : 1}
+          bg={filled ? '$background' : outlined ? '$surface' : '$background'}
+          borderWidth={1}
           borderColor={borderColor}
           style={{ borderRadius: outlined || filled ? tokens.radius.control.val : tokens.radius.$4.val }}
-          focusWithinStyle={outlined ? undefined : { borderColor: '$brand', borderWidth: 2 }}
+          opacity={props.disabled ? 0.6 : 1}
         >
           {startAdornment}
           <Input

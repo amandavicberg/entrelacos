@@ -2,8 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Redirect, type RelativePathString, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
-import { Button, Paragraph, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { Paragraph, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { AppButton as Button } from '@/components/app-button';
 
+import { AmbientSurface } from '@/components/ambient-surface';
 import { AppCard } from '@/components/app-card';
 import { BrandButton } from '@/components/brand-button';
 import { FeedbackState } from '@/components/feedback-state';
@@ -88,17 +90,20 @@ export default function PatientHomeScreen() {
 
   return <PatientScreen title={firstName ? `Olá, ${firstName}` : 'Olá, que bom ter você aqui'}
     description="Seu acompanhamento, com o que importa para hoje.">
-    <AppCard p="$5" background="$accentSoft" borderColor="$logoBorder">
+    <AmbientSurface strong rounded="$feature" p={wide ? '$6' : '$5'} gap="$5">
       <XStack items="center" gap="$2">
-        <Ionicons name="heart-outline" size={20} color={theme.accentText.val} accessible={false} />
-        <SizableText color="$accentText" size="$2" fontWeight="700" letterSpacing={1}>UM MOMENTO PARA VOCÊ</SizableText>
+        <Ionicons name="heart-outline" size={19} color={theme.heroText.val} accessible={false} />
+        <SizableText color="$heroText" size="$2" letterSpacing={1.2} shrink={1}>UM MOMENTO PARA VOCÊ</SizableText>
       </XStack>
-      <SizableText color="$color" fontFamily="$heading" fontSize={wide ? 27 : 23}>Como você está hoje?</SizableText>
-      <Paragraph color="$muted">Registre seu momento para levar à próxima conversa.</Paragraph>
-      <BrandButton self="flex-start" onPress={() => router.push('/(patient)/check-ins' as RelativePathString)}>
-        Fazer meu check-in
-      </BrandButton>
-    </AppCard>
+      <YStack gap="$2" maxW={480}>
+        <SizableText color="$heroText" fontFamily="$heading" fontSize={wide ? 35 : 28} lineHeight={wide ? 46 : 38} letterSpacing={-0.8}>Como você está hoje?</SizableText>
+        <Paragraph color="$heroText" lineHeight={26}>Seu momento merece atenção. Registre o que sente para levar à próxima conversa.</Paragraph>
+      </YStack>
+      <BrandButton self="flex-start" bg="$heroText" borderColor="$heroText" color="$hero" textProps={{ color: '$hero', shrink: 1 }}
+        hoverStyle={{ bg: '$accentSoft' }} pressStyle={{ bg: '$logoBorder' }}
+        iconAfter={<Ionicons name="arrow-forward" size={20} color={theme.hero.val} accessible={false} />}
+        onPress={() => router.push('/(patient)/check-ins' as RelativePathString)}>Fazer meu check-in</BrandButton>
+    </AmbientSurface>
 
     <XStack flexDirection={wide ? 'row' : 'column'} gap="$4" items="stretch">
       <AppCard flex={wide ? 1 : undefined} minW={0} p="$5">

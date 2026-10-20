@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
-import { Button, Paragraph, SizableText, TextArea, useTheme, XStack, YStack } from 'tamagui';
+import { Paragraph, SizableText, TextArea, useTheme, XStack, YStack } from 'tamagui';
+import { AppButton as Button } from '@/components/app-button';
 
 import { CancellationConfirmation } from '@/components/cancellation-confirmation';
 import { AppCard } from '@/components/app-card';
@@ -224,8 +225,8 @@ export default function PatientDetailScreen() {
       </XStack>
       <AppCard p="$5" borderLeftWidth={4} borderLeftColor="$accent">
         <XStack items="center" gap="$4" flexWrap="wrap">
-          <InitialsAvatar name={patient.patientName} large />
-          <YStack flex={1} minW={180} gap="$1">
+          <InitialsAvatar name={patient.patientName} large={wide} />
+          <YStack flex={1} minW={0} gap="$1">
             <Paragraph color="$accentText" size="$2" fontWeight="700" letterSpacing={1}>FICHA DO PACIENTE</Paragraph>
             <SizableText role="heading" color="$color" fontFamily="$heading" fontSize={wide ? 28 : 23} lineHeight={wide ? 36 : 31}>{patient.patientName}</SizableText>
             <Paragraph color="$muted" size="$2">Vínculo ativo · Acompanhamento individual</Paragraph>
@@ -263,7 +264,7 @@ export default function PatientDetailScreen() {
       {detailsLoading ? <FeedbackState status="loading" title="Carregando dados do acompanhamento" /> : null}
       {!detailsLoading && section === 'birthday' ? <><YStack gap="$1"><SizableText color="$color" fontWeight="700" fontSize={20}>Mensagem de aniversário</SizableText><Paragraph color="$muted" size="$2">Um gesto pessoal no dia do aniversário do paciente.</Paragraph></YStack>
       <AppCard background="$surface" rounded="$panel" p="$5">
-        <YStack gap="$3"><XStack items="center" gap="$3"><YStack width={48} height={48} items="center" justify="center" bg="$accentSoft" rounded="$control"><Ionicons name="gift-outline" size={24} color={theme.accentText.val} accessible={false} /></YStack><SizableText color="$color" fontWeight="700">Escreva uma mensagem acolhedora</SizableText></XStack><Paragraph color="$muted">Opcional. Sem personalização, o paciente verá a mensagem padrão no aniversário.</Paragraph><TextArea aria-label="Mensagem de aniversário para o paciente" value={birthdayContent} onChangeText={setBirthdayContent} placeholder="Escreva aqui a mensagem" maxLength={1000} minH={120} borderColor="$borderColor" /><Paragraph color="$muted" size="$2">{birthdayContent.length}/1000 caracteres</Paragraph><BrandButton hoverStyle={{ background: '$brandHover' }} pressStyle={{ background: '$brandPress' }} disabled={saving || !birthdayContent.trim()} onPress={() => void saveBirthday()}>{saving ? 'Salvando…' : 'Salvar mensagem'}</BrandButton></YStack>
+        <YStack gap="$3"><XStack items="center" gap="$3"><YStack width={48} height={48} items="center" justify="center" bg="$accentSoft" rounded="$control"><Ionicons name="gift-outline" size={24} color={theme.accentText.val} accessible={false} /></YStack><SizableText color="$color" fontWeight="700">Escreva uma mensagem acolhedora</SizableText></XStack><Paragraph color="$muted">Opcional. Sem personalização, o paciente verá a mensagem padrão no aniversário.</Paragraph><TextArea rounded="$control" bg="$background" p="$4" fontFamily="$body" color="$color" placeholderTextColor="$muted" focusStyle={{ borderColor: '$brand', borderWidth: 2 }} aria-label="Mensagem de aniversário para o paciente" value={birthdayContent} onChangeText={setBirthdayContent} placeholder="Escreva aqui a mensagem" maxLength={1000} minH={120} borderColor="$borderColor" /><Paragraph color="$muted" size="$2">{birthdayContent.length}/1000 caracteres</Paragraph><BrandButton hoverStyle={{ background: '$brandHover' }} pressStyle={{ background: '$brandPress' }} disabled={saving || !birthdayContent.trim()} onPress={() => void saveBirthday()}>{saving ? 'Salvando…' : 'Salvar mensagem'}</BrandButton></YStack>
       </AppCard>
 
 </> : null}
@@ -277,7 +278,7 @@ export default function PatientDetailScreen() {
       {observationFormOpen ? <AppCard title={editingObservation ? 'Corrigir observação' : 'Nova observação'} background="$surface" rounded="$panel" p="$5">
         <YStack gap="$3">
           <SizableText color="$muted" size="$2">Observações são privadas por padrão.</SizableText>
-          <TextArea aria-label="Conteúdo da observação" value={content} onChangeText={setContent} placeholder="Registre somente o necessário para o acompanhamento" minH={110} maxLength={5000} borderColor="$borderColor" />
+          <TextArea rounded="$control" bg="$background" p="$4" fontFamily="$body" color="$color" placeholderTextColor="$muted" focusStyle={{ borderColor: '$brand', borderWidth: 2 }} aria-label="Conteúdo da observação" value={content} onChangeText={setContent} placeholder="Registre somente o necessário para o acompanhamento" minH={110} maxLength={5000} borderColor="$borderColor" />
           <AppInput label="Data e hora da observação" value={occurredAt} onChangeText={(value) => setOccurredAt(maskLocalDateTime(value))} placeholder="DD/MM/AAAA HH:mm" keyboardType="numeric" /><Paragraph color="$muted" size="$2">Exemplo: 25/12/2026 14:30</Paragraph>
           <XStack gap="$2" flexWrap="wrap" accessibilityRole="radiogroup">
             <Button minH="$touchTarget" flex={1} minW={160} bg={visibility === 'professional' ? '$brand' : '$soft'} color={visibility === 'professional' ? '$brandContrast' : '$color'} onPress={() => setVisibility('professional')} accessibilityState={{ selected: visibility === 'professional' }}>Somente profissional</Button>

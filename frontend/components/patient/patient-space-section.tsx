@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { Redirect, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { Button, Paragraph, SizableText, TextArea, useTheme, XStack, YStack } from 'tamagui';
+import { Paragraph, SizableText, TextArea, useTheme, XStack, YStack } from 'tamagui';
+import { AppButton as Button } from '@/components/app-button';
 
 import { AppCard } from '@/components/app-card';
 import { AppInput } from '@/components/app-input';
@@ -24,6 +25,10 @@ const feelingLabels: { value: PatientCheckIn['feeling']; label: string }[] = [
   { value: 'tired', label: 'Cansado(a)' }, { value: 'anxious', label: 'Ansioso(a)' },
   { value: 'sad', label: 'Triste' }, { value: 'other', label: 'Outro' },
 ];
+const feelingIcons = {
+  calm: 'leaf-outline', happy: 'sunny-outline', tired: 'moon-outline',
+  anxious: 'pulse-outline', sad: 'rainy-outline', other: 'ellipsis-horizontal',
+} as const;
 const documentKinds: { value: PatientDocument['kind']; label: string }[] = [
   { value: 'exam', label: 'Exame' }, { value: 'report', label: 'Laudo' },
   { value: 'diagnosis', label: 'Diagnóstico' }, { value: 'other', label: 'Outro' },
@@ -142,15 +147,27 @@ export function PatientSpaceSection({ section }: { section: Section }) {
     {section === 'messages' ? <AppCard p="$5">
       <SizableText color="$color" fontWeight="700" fontSize={18}>Novo recado</SizableText>
       <Paragraph color="$muted" size="$2">Anote um assunto para a próxima sessão. Não há resposta em tempo real.</Paragraph>
-      <TextArea aria-label="Recado para a próxima sessão" placeholder="O que você gostaria de conversar?" value={content} onChangeText={setContent} maxLength={2000} minH={130} borderColor="$borderColor" />
+      <TextArea rounded="$control" bg="$background" p="$4" fontFamily="$body" color="$color" placeholderTextColor="$muted" focusStyle={{ borderColor: '$brand', borderWidth: 2 }} aria-label="Recado para a próxima sessão" placeholder="O que você gostaria de conversar?" value={content} onChangeText={setContent} maxLength={2000} minH={130} borderColor="$borderColor" />
       <XStack items="center" justify="space-between" gap="$2" flexWrap="wrap"><Paragraph color="$muted" size="$2">{content.length}/2000 caracteres</Paragraph><BrandButton disabled={saving || !selectedRelationship || !content.trim()} onPress={() => void sendMessage()}>{saving ? 'Salvando…' : 'Adicionar ao mural'}</BrandButton></XStack>
     </AppCard> : null}
 
     {section === 'check-ins' ? <AppCard p="$5">
       <SizableText color="$color" fontWeight="700" fontSize={18}>Meu check-in</SizableText>
       <Paragraph color="$muted" size="$2">Escolha uma palavra que melhor descreve seu momento.</Paragraph>
-      <XStack gap="$2" flexWrap="wrap" accessibilityRole="radiogroup">{feelingLabels.map((item) => <Button key={item.value} minH="$touchTarget" bg={feeling === item.value ? '$brand' : '$soft'} color={feeling === item.value ? '$brandContrast' : '$brand'} borderWidth={1} borderColor={feeling === item.value ? '$brand' : '$borderColor'} accessibilityRole="radio" accessibilityState={{ selected: feeling === item.value }} onPress={() => setFeeling(item.value)}>{item.label}</Button>)}</XStack>
-      <TextArea aria-label="Anotação opcional do check-in" placeholder="Quer deixar uma anotação?" value={content} onChangeText={setContent} maxLength={500} minH={100} borderColor="$borderColor" />
+      <XStack gap="$2" flexWrap="wrap" accessibilityRole="radiogroup" accessibilityLabel="Como você se sente">
+        {feelingLabels.map((item) => <Button key={item.value} unstyled role="radio" flex={1} minW={100} minH={104}
+          height="auto" p="$3" rounded="$control" bg={feeling === item.value ? '$brand' : '$background'}
+          borderWidth={1} borderColor={feeling === item.value ? '$brand' : '$borderColor'}
+          accessibilityState={{ selected: feeling === item.value }} aria-checked={feeling === item.value} aria-label={item.label}
+          hoverStyle={{ borderColor: '$brand' }} pressStyle={{ opacity: 0.8 }}
+          focusVisibleStyle={{ outlineWidth: 2, outlineColor: '$brand', outlineStyle: 'solid' }} onPress={() => setFeeling(item.value)}>
+          <YStack items="center" gap="$2" pointerEvents="none">
+            <Ionicons name={feelingIcons[item.value]} size={26} color={feeling === item.value ? theme.brandContrast.val : theme.brand.val} accessible={false} />
+            <SizableText color={feeling === item.value ? '$brandContrast' : '$brand'} size="$3" text="center">{item.label}</SizableText>
+          </YStack>
+        </Button>)}
+      </XStack>
+      <TextArea rounded="$control" bg="$background" p="$4" fontFamily="$body" color="$color" placeholderTextColor="$muted" focusStyle={{ borderColor: '$brand', borderWidth: 2 }} aria-label="Anotação opcional do check-in" placeholder="Quer deixar uma anotação?" value={content} onChangeText={setContent} maxLength={500} minH={100} borderColor="$borderColor" />
       <XStack items="center" justify="space-between" gap="$2" flexWrap="wrap"><Paragraph color="$muted" size="$2">Opcional · {content.length}/500 caracteres</Paragraph><BrandButton disabled={saving || !selectedRelationship} onPress={() => void saveCheckIn()}>{saving ? 'Salvando…' : 'Registrar meu momento'}</BrandButton></XStack>
     </AppCard> : null}
 

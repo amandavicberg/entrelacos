@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
-import { Button, Dialog, Paragraph, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { Dialog, Paragraph, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { AppButton as Button } from '@/components/app-button';
 
 import { AppCard } from '@/components/app-card';
 import { BrandButton } from '@/components/brand-button';

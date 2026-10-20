@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { Button, Paragraph, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { Paragraph, ScrollView, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { AppButton as Button } from '@/components/app-button';
 
 import { dateKey, monthDays, moveMonth } from '@/lib/calendar';
 
@@ -19,6 +21,7 @@ export function MonthCalendar({ month, selected, marks, onMonthChange, onSelect,
   markedDayLabel?: string;
 }) {
   const theme = useTheme();
+  const [narrow, setNarrow] = useState(false);
   const today = dateKey(new Date());
   const days = monthDays(month);
   const rows = Array.from({ length: Math.ceil(days.length / 7) }, (_, index) => days.slice(index * 7, index * 7 + 7));
@@ -28,13 +31,13 @@ export function MonthCalendar({ month, selected, marks, onMonthChange, onSelect,
   const title = monthTitle.charAt(0).toUpperCase() + monthTitle.slice(1);
 
   return (
-    <YStack gap="$3" width="100%" maxW={440} self="center" accessibilityLabel="Calendário mensal">
+    <YStack gap="$3" width="100%" maxW={440} self="center" accessibilityLabel="Calendário mensal" onLayout={(event) => setNarrow(event.nativeEvent.layout.width < 320)}>
       <XStack items="center" justify="space-between" gap="$2">
         <Button chromeless minW="$touchTarget" minH="$touchTarget" aria-label="Mês anterior"
           disabled={Boolean(minMonth && month <= minMonth)} onPress={() => onMonthChange(moveMonth(month, -1))}>
           <Ionicons name="chevron-back" size={20} color={theme.brand.val} accessible={false} />
         </Button>
-        <SizableText color="$color" fontFamily="$heading" fontWeight="700">
+        <SizableText color="$color" fontFamily="$heading" fontWeight="700" flex={1} text="center" shrink={1}>
           {title}
         </SizableText>
         <Button chromeless minW="$touchTarget" minH="$touchTarget" aria-label="Próximo mês"
@@ -42,7 +45,9 @@ export function MonthCalendar({ month, selected, marks, onMonthChange, onSelect,
           <Ionicons name="chevron-forward" size={20} color={theme.brand.val} accessible={false} />
         </Button>
       </XStack>
-      <YStack width="100%" gap="$1">
+      {narrow ? <Paragraph color="$muted" size="$2">Deslize para ver todos os dias da semana.</Paragraph> : null}
+      <ScrollView horizontal contentContainerStyle={{ grow: 1 }} showsHorizontalScrollIndicator>
+      <YStack flex={1} minW={320} gap="$1">
           <XStack gap={2}>
             {weekdayLabels.map((label) => (
               <Paragraph key={label} flex={1} minW={0} text="center" color="$muted" size="$2">{label}</Paragraph>
@@ -60,7 +65,7 @@ export function MonthCalendar({ month, selected, marks, onMonthChange, onSelect,
                 <Button key={day} unstyled role="button" flex={1} minW={0} minH={48}
                   aria-label={`${new Date(`${day}T12:00:00Z`).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}${marked ? `, ${markedDayLabel}` : ''}`}
                   aria-pressed={chosen} disabled={unavailable} onPress={() => onSelect(day)}
-                  rounded="$control" bg={chosen ? '$brand' : day === today ? '$soft' : 'transparent'}
+                  rounded="$pill" bg={chosen ? '$brand' : day === today ? '$soft' : 'transparent'}
                   borderWidth={day === today && !chosen ? 1 : 0} borderColor="$brand"
                   hoverStyle={{ background: chosen ? '$brand' : '$soft' }}
                   pressStyle={{ opacity: 0.7 }}
@@ -77,6 +82,7 @@ export function MonthCalendar({ month, selected, marks, onMonthChange, onSelect,
             </XStack>
           ))}
       </YStack>
+      </ScrollView>
       <Paragraph color="$muted" size="$2">{markDescription ?? 'Os pontos indicam dias com consultas.'}</Paragraph>
     </YStack>
   );

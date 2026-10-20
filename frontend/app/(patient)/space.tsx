@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { type RelativePathString, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Button, Paragraph, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { Paragraph, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { AppButton as Button } from '@/components/app-button';
 
+import { useScreenLayout } from '@/hooks/use-screen-layout';
 import { AppCard } from '@/components/app-card';
 import { PatientScreen } from '@/components/patient/patient-screen';
 import { useAuth } from '@/contexts/auth-context';
@@ -19,6 +21,8 @@ export default function PatientSpaceScreen() {
   const { session, signOut } = useAuth();
   const router = useRouter();
   const theme = useTheme();
+  const { width, fontScale } = useScreenLayout();
+  const columns = width >= 760 && fontScale < 1.3;
   const [leaving, setLeaving] = useState(false);
   const [error, setError] = useState('');
   const name = typeof session?.user.user_metadata?.full_name === 'string'
@@ -41,9 +45,9 @@ export default function PatientSpaceScreen() {
         <SizableText color="$color" fontWeight="700" fontSize={18}>Continuar o acompanhamento</SizableText>
         <Paragraph color="$muted" size="$2">Escolha o que você precisa fazer agora.</Paragraph>
       </YStack>
-      <YStack gap="$2">
-        {areas.map((item) => <Button key={item.href} unstyled role="button" minH={72} height="auto" p="$3"
-          bg="$background" rounded="$control" borderWidth={1} borderColor="$borderColor"
+      <XStack gap="$3" flexWrap="wrap">
+        {areas.map((item) => <Button key={item.href} unstyled role="button" minH={104} height="auto" p="$4" width={columns ? '48%' : '100%'}
+          bg="$background" rounded="$panel" borderWidth={1} borderColor="$borderColor"
           hoverStyle={{ borderColor: '$brand', background: '$soft' }} pressStyle={{ opacity: 0.84 }}
           aria-label={item.label} onPress={() => router.push(item.href as RelativePathString)}>
           <XStack width="100%" items="center" gap="$3">
@@ -57,7 +61,7 @@ export default function PatientSpaceScreen() {
             <Ionicons name="chevron-forward" size={18} color={theme.brand.val} accessible={false} />
           </XStack>
         </Button>)}
-      </YStack>
+      </XStack>
     </AppCard>
     <AppCard p="$5">
       <SizableText color="$color" fontWeight="700" fontSize={18}>Sua conta</SizableText>

@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Button, H1, Paragraph, SizableText, Spinner, useTheme, XStack, YStack } from 'tamagui';
+import { H1, Paragraph, SizableText, Spinner, useTheme, XStack, YStack } from 'tamagui';
+import { AppButton as Button } from '@/components/app-button';
 
 import { AppCard } from '@/components/app-card';
 import { AppInput } from '@/components/app-input';

@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
-import { Button, Paragraph, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { Paragraph, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { AppButton as Button } from '@/components/app-button';
 
 import { AppCard } from '@/components/app-card';
 import { AppHeader } from '@/components/app-header';

@@ -2,8 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Link, Redirect, type RelativePathString } from 'expo-router';
 import { useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Paragraph, ScrollView, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { Paragraph, ScrollView, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { AppButton as Button } from '@/components/app-button';
 
+import { AmbientSurface } from '@/components/ambient-surface';
 import { BrandLogo } from '@/components/brand-logo';
 import { BrandButton } from '@/components/brand-button';
 import { AppScreen } from '@/components/app-screen';
@@ -13,7 +15,7 @@ import { useAuth } from '@/contexts/auth-context';
 export default function WelcomeScreen() {
   const { accessState } = useAuth();
   const { width, fontScale } = useWindowDimensions();
-  const wide = width > 850 && fontScale < 1.5;
+  const wide = width >= 1000 && fontScale < 1.5;
   const theme = useTheme();
   if (accessState === 'loading') return <FeedbackState status="loading" title="Preparando seu acesso" />;
   if (accessState === 'professional') return <Redirect href="/(professional)" />;
@@ -23,46 +25,63 @@ export default function WelcomeScreen() {
 
   return (
     <AppScreen p={0}>
-      <SafeAreaView edges={['top', 'bottom', 'left', 'right']} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ grow: 1 }}>
-          <YStack width="100%" maxW={1160} self="center" px={wide ? '$6' : '$4'} py={wide ? '$5' : '$4'} gap={wide ? '$8' : '$6'}>
-            <XStack justify="space-between" items="center" gap="$3">
-              <BrandLogo width={wide ? 190 : 150} framed={false} />
-              <Link href="/login" asChild><Button bg="$surface" color="$brand" borderWidth={1} borderColor="$borderColor" minH="$touchTarget">Entrar</Button></Link>
-            </XStack>
-            <XStack flexDirection={wide ? 'row' : 'column'} gap={wide ? '$7' : '$5'} items="stretch">
-              <YStack flex={wide ? 1 : undefined} minW={0} width={wide ? undefined : '100%'} gap="$5" py={wide ? '$6' : '$2'} justify="center">
-                <XStack self="flex-start" items="center" gap="$2" bg="$accentSoft" rounded="$12" px="$3" py="$2">
-                  <YStack width={8} height={8} rounded="$12" bg="$accent" />
-                  <SizableText color="$accentText" size="$2" fontWeight="700" letterSpacing={1}>CUIDADO ENTRE ENCONTROS</SizableText>
-                </XStack>
-                <SizableText role="heading" fontFamily="$heading" color="$color" fontSize={wide ? 46 : 34} lineHeight={wide ? 58 : 44}>Seu cuidado, com mais clareza a cada passo.</SizableText>
-                <Paragraph color="$muted" size="$5" lineHeight={29}>Consultas, registros e materiais em um espaço organizado para você e o profissional que acompanha seu percurso.</Paragraph>
-                <YStack gap="$3" maxW={350} width="100%">
-                  <Link href="/cadastro" asChild><BrandButton iconAfter={<Ionicons name="arrow-forward-outline" size={20} color={theme.brandContrast.val} accessible={false} />}>Criar minha conta</BrandButton></Link>
-                  <Paragraph color="$muted" size="$2">Paciente ou profissional? Você escolhe seu perfil no cadastro.</Paragraph>
+      <ScrollView contentContainerStyle={{ grow: 1 }}>
+        <YStack width="100%" maxW={wide ? 1184 : 600} self="center" flex={1} py={wide ? '$5' : 0}>
+          <XStack flexDirection={wide ? 'row' : 'column'} flex={1} items="stretch">
+            <AmbientSurface flex={wide ? 1.2 : undefined} minW={0} minH={wide ? 740 : 460}
+              rounded={wide ? '$sheet' : 0} strong>
+              <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: wide ? 1 : undefined }}>
+                <YStack flex={wide ? 1 : undefined} justify="space-between" p={wide ? '$6' : '$4'} gap="$6" pb={wide ? '$7' : '$7'}>
+                  <XStack items="center" justify="space-between" gap="$3" flexWrap="wrap">
+                    <YStack bg="$logoSurface" rounded="$pill" px="$3" py="$1"><BrandLogo width={148} framed={false} /></YStack>
+                    <Link href="/login" asChild><Button bg="$glass" color="$heroText" rounded="$pill" minH="$touchTarget"
+                      borderWidth={1} borderColor="$glassBorder" px="$4" hoverStyle={{ bg: '$photoShade' }}
+                      iconAfter={<Ionicons name="arrow-forward" size={17} color={theme.heroText.val} accessible={false} />}>Entrar</Button></Link>
+                  </XStack>
+                  <YStack gap="$4" px="$2" maxW={500}>
+                    <SizableText color="$heroText" size="$2" letterSpacing={2} shrink={1}>CUIDADO ENTRE ENCONTROS</SizableText>
+                    <SizableText role="heading" color="$heroText" fontFamily="$body" fontWeight="400" letterSpacing={-1.8}
+                      fontSize={wide ? 58 : 46} lineHeight={wide ? 69 : 56}>O cuidado{'\n'}acontece{'\n'}entre nós.</SizableText>
+                    <Paragraph color="$heroText" size="$3" lineHeight={24} maxW={300}>Sua história, seus encontros.{'\n'}Tudo conectado em um só espaço.</Paragraph>
+                  </YStack>
                 </YStack>
+              </SafeAreaView>
+            </AmbientSurface>
+
+            <YStack flex={wide ? 1 : undefined} minW={0} bg="$surface" rounded="$sheet" mt={wide ? 0 : -36}
+              ml={wide ? -36 : 0} position="relative" justify="center" px={wide ? '$6' : '$5'} pt="$5" pb="$5" gap="$5">
+              <YStack width={38} height={4} rounded="$pill" bg="$logoBorder" self="center" mb="$1" aria-hidden />
+              <YStack gap="$2">
+                <XStack gap="$2" items="center"><YStack width={6} height={6} bg="$accent" rounded="$pill" />
+                  <SizableText size="$2" color="$accentText" letterSpacing={1.4}>BEM-VINDO AO ENTRELAÇOS</SizableText></XStack>
+                <SizableText color="$color" fontFamily="$heading" fontSize={wide ? 33 : 25} lineHeight={wide ? 44 : 34} letterSpacing={-0.6}>
+                  Um lugar para continuar o seu cuidado.
+                </SizableText>
+                <Paragraph color="$muted" size="$3" lineHeight={24}>Organize o que importa entre uma consulta e outra, junto de quem acompanha você.</Paragraph>
               </YStack>
-              <YStack flex={wide ? 1 : undefined} minW={0} width={wide ? undefined : '100%'} bg="$surface" borderWidth={1} borderColor="$borderColor" rounded="$panel" p={wide ? '$6' : '$5'} gap="$5">
-                <XStack gap="$2" items="center"><Ionicons name="heart-outline" size={20} color={theme.accentText.val} accessible={false} /><SizableText color="$accentText" size="$2" fontWeight="700" letterSpacing={1}>UM ESPAÇO PARA CONTINUAR</SizableText></XStack>
-                <SizableText color="$color" fontFamily="$heading" fontSize={wide ? 27 : 23} lineHeight={wide ? 36 : 32}>O que importa fica fácil de encontrar.</SizableText>
+              <XStack gap="$2">
                 {[
-                  { icon: 'calendar-outline', title: 'Encontros', text: 'Consulte horários e acompanhe suas consultas.' },
-                  { icon: 'heart-outline', title: 'Seu momento', text: 'Registre como está para levar à próxima conversa.' },
-                  { icon: 'folder-open-outline', title: 'Conteúdos', text: 'Reencontre materiais e orientações compartilhados.' },
-                ].map((item) => <XStack key={item.title} gap="$3" p="$3" bg="$background" rounded="$control" items="center">
-                  <YStack width={46} height={46} items="center" justify="center" bg="$accentSoft" rounded="$control"><Ionicons name={item.icon as 'calendar-outline'} size={22} color={theme.brand.val} accessible={false} /></YStack>
-                  <YStack flex={1} minW={0} gap="$1"><SizableText color="$color" fontWeight="700">{item.title}</SizableText><Paragraph color="$muted" size="$2">{item.text}</Paragraph></YStack>
-                </XStack>)}
+                  { icon: 'calendar-outline', label: 'Encontros' },
+                  { icon: 'heart-outline', label: 'Registros' },
+                  { icon: 'folder-open-outline', label: 'Materiais' },
+                ].map((item) => <YStack key={item.label} flex={1} minW={0} items="center" gap="$2" py="$3" bg="$background" rounded="$control">
+                  <Ionicons name={item.icon as 'heart-outline'} size={23} color={theme.brand.val} accessible={false} />
+                  <SizableText color="$brand" size="$2" text="center">{item.label}</SizableText>
+                </YStack>)}
+              </XStack>
+              <YStack gap="$3">
+                <Link href="/cadastro" asChild><BrandButton iconAfter={<Ionicons name="arrow-forward" size={21} color={theme.brandContrast.val} accessible={false} />}>Começar meu percurso</BrandButton></Link>
+                <Paragraph color="$muted" size="$2" text="center">Para pacientes e profissionais.</Paragraph>
               </YStack>
-            </XStack>
-            <XStack gap="$5" flexWrap="wrap" borderTopWidth={1} borderColor="$borderColor" pt="$5" pb="$4">
-              <YStack flex={1} minW={240} gap="$1"><SizableText color="$brand" fontWeight="700">Para pacientes</SizableText><Paragraph color="$muted" size="$3">Acompanhe seu percurso após aceitar o convite e obter aprovação do profissional.</Paragraph></YStack>
-              <YStack flex={1} minW={240} gap="$1"><SizableText color="$brand" fontWeight="700">Para profissionais</SizableText><Paragraph color="$muted" size="$3">Organize agenda, vínculos e conteúdos do acompanhamento.</Paragraph></YStack>
-            </XStack>
-          </YStack>
-        </ScrollView>
-      </SafeAreaView>
+              <XStack gap="$2" items="flex-start" borderTopWidth={1} borderColor="$borderColor" pt="$4">
+                <Ionicons name="link-outline" size={17} color={theme.accentText.val} accessible={false} />
+                <Paragraph color="$muted" size="$2" flex={1}>O acesso do paciente começa com o convite e a aprovação do profissional.</Paragraph>
+              </XStack>
+              <SafeAreaView edges={['bottom']} />
+            </YStack>
+          </XStack>
+        </YStack>
+      </ScrollView>
     </AppScreen>
   );
 }

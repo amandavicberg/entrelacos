@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, type RelativePathString, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Button, getTokens, Paragraph, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { getTokens, Paragraph, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { AppButton as Button } from '@/components/app-button';
 
 import { AuthScreen } from '@/components/auth-screen';
 import { BrandButton } from '@/components/brand-button';

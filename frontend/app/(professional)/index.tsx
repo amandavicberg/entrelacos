@@ -3,8 +3,10 @@ import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
-import { Button, H1, Paragraph, SizableText, Spinner, useTheme, XStack, YStack } from 'tamagui';
+import { H1, Paragraph, SizableText, Spinner, useTheme, XStack, YStack } from 'tamagui';
+import { AppButton as Button } from '@/components/app-button';
 
+import { AmbientSurface } from '@/components/ambient-surface';
 import { AppCard } from '@/components/app-card';
 import { BrandButton } from '@/components/brand-button';
 import { BrandLogo } from '@/components/brand-logo';
@@ -37,11 +39,11 @@ function Metric({ label, detail, value, icon, tone, onPress }: {
   const theme = useTheme();
   const { fontScale } = useWindowDimensions();
   const backgrounds = {
-    brand: '$soft', neutral: '$surface', confirmed: '$confirmedBackground',
+    brand: '$hero', neutral: '$surface', confirmed: '$confirmedBackground',
     declined: '$declinedBackground', pending: '$pendingBackground',
   } as const;
   const textColors = {
-    brand: '$brand', neutral: '$brand', confirmed: '$confirmedColor',
+    brand: '$heroText', neutral: '$brand', confirmed: '$confirmedColor',
     declined: '$declinedColor', pending: '$pendingColor',
   } as const;
   const iconColors = {
@@ -50,7 +52,7 @@ function Metric({ label, detail, value, icon, tone, onPress }: {
   };
   return (
     <Button unstyled role="button" onPress={onPress} aria-label={`${label}: ${value}. ${detail}`}
-      flex={1} minW={fontScale >= 1.3 ? 270 : 150} minH={142} height="auto" p="$4" rounded="$panel"
+      flex={1} minW={fontScale >= 1.3 ? 220 : 140} minH={158} height="auto" p="$4" rounded="$panel"
       bg={backgrounds[tone]} borderWidth={1} borderColor="$borderColor"
       hoverStyle={{ borderColor: '$brand' }} pressStyle={{ opacity: 0.8 }}
       focusVisibleStyle={{ outlineWidth: 2, outlineColor: '$brand', outlineStyle: 'solid' }}>
@@ -61,8 +63,8 @@ function Metric({ label, detail, value, icon, tone, onPress }: {
             <Ionicons name={icon} size={20} color={iconColors[tone]} accessible={false} />
           </YStack>
         </XStack>
-        <SizableText color="$color" fontWeight="700" text="left" fontSize={14}>{label}</SizableText>
-        <Paragraph color="$muted" size="$2" text="left">{detail}</Paragraph>
+        <SizableText color={tone === 'brand' ? '$heroText' : '$color'} fontWeight="700" text="left" fontSize={14}>{label}</SizableText>
+        <Paragraph color={tone === 'brand' ? '$heroMuted' : '$muted'} size="$2" text="left">{detail}</Paragraph>
       </YStack>
     </Button>
   );
@@ -88,6 +90,8 @@ const activityLabels: Record<ProfessionalActivity['items'][number]['type'], { la
 
 export default function ProfessionalHomeScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const compact = width < 600;
   const theme = useTheme();
   const { session } = useAuth();
   const profile = useProfessionalProfile();
@@ -224,42 +228,42 @@ export default function ProfessionalHomeScreen() {
 
   return (
     <ProfessionalScreen>
-      <AppCard p="$5" background="$surface" borderColor="$borderColor">
-        <XStack items="center" justify="space-between" gap="$3" flexWrap="wrap">
-          <BrandLogo width={184} framed={false} />
+      <YStack gap="$5">
+        <XStack items="center" justify="space-between" gap="$3" flexWrap="wrap" pb="$3" borderBottomWidth={1} borderColor="$logoBorder">
+          <BrandLogo width={compact ? 150 : 184} framed={false} />
           <Button unstyled role="button" minH="$touchTarget" aria-label="Abrir meu perfil profissional"
             onPress={() => router.navigate('/(professional)/profile' as Href)}
             hoverStyle={{ opacity: 0.75 }} pressStyle={{ opacity: 0.7 }}
             focusVisibleStyle={{ outlineWidth: 2, outlineColor: '$brand', outlineStyle: 'solid' }}>
             <XStack items="center" gap="$2" py="$1" px="$2" rounded="$control" bg="$soft">
               <InitialsAvatar name={profile.profile?.name ?? 'Profissional'} />
-              <YStack gap={0} maxW={135}>
+              {!compact ? <YStack gap={0} maxW={135}>
                 <SizableText color="$color" fontWeight="700" numberOfLines={1}>
                   {firstName ?? 'Meu perfil'}
                 </SizableText>
                 <SizableText color="$muted" size="$2">Meu perfil</SizableText>
-              </YStack>
+              </YStack> : null}
               <Ionicons name="chevron-forward" size={16} color={theme.brand.val} accessible={false} />
             </XStack>
           </Button>
         </XStack>
-        <YStack gap="$2" pt="$3">
-          <SizableText color="$brand" size="$2" fontWeight="700" letterSpacing={1}>PAINEL PROFISSIONAL</SizableText>
-          <H1 color="$color" fontFamily="$heading" size="$8">{firstName ? 'Olá, ' + firstName : 'Olá, profissional'}</H1>
-          <Paragraph color="$muted" size="$4">Um lugar para acompanhar pessoas e organizar os próximos encontros.</Paragraph>
+        <AmbientSurface strong gap="$3" p="$5" rounded="$feature">
+          <SizableText color="$heroText" size="$2" fontWeight="700" letterSpacing={1}>PAINEL PROFISSIONAL</SizableText>
+          <H1 color="$heroText" fontFamily="$heading" size="$8">{firstName ? 'Olá, ' + firstName : 'Olá, profissional'}</H1>
+          <Paragraph color="$heroText" size="$4">Um lugar para acompanhar pessoas e organizar os próximos encontros.</Paragraph>
           {profile.profile?.specialty || profile.profile?.registration ? (
-            <Paragraph color="$brand" size="$2">
+            <Paragraph color="$heroText" size="$2">
               {[profile.profile.specialty, profile.profile.registration].filter(Boolean).join(' · ')}
             </Paragraph>
           ) : null}
           {profile.status === 'error' ? (
             <XStack items="center" gap="$2" flexWrap="wrap">
-              <Paragraph color="$declinedColor" size="$2">Seu perfil não pôde ser carregado.</Paragraph>
-              <Button minH="$touchTarget" chromeless color="$brand" onPress={profile.retry}>Tentar novamente</Button>
+              <Paragraph color="$heroText" size="$2">Seu perfil não pôde ser carregado.</Paragraph>
+              <Button minH="$touchTarget" chromeless color="$heroText" onPress={profile.retry}>Tentar novamente</Button>
             </XStack>
           ) : null}
-        </YStack>
-      </AppCard>
+        </AmbientSurface>
+      </YStack>
 
       {feedback ? (
         <YStack p="$3" bg={feedback.kind === 'error' ? '$declinedBackground' : '$soft'}
@@ -346,7 +350,7 @@ export default function ProfessionalHomeScreen() {
       <AppCard p="$5">
         <YStack gap="$3">
           <XStack items="center" justify="space-between" gap="$2" flexWrap="wrap">
-            <YStack gap="$1" flex={1} minW={220}>
+            <YStack gap="$1" flex={1} minW={0}>
               <SizableText color="$color" fontFamily="$heading" size="$6">Atualizações dos pacientes</SizableText>
               <Paragraph color="$muted" size="$2">Recados, documentos e check-ins dos últimos {activityPeriodDays} dias.</Paragraph>
             </YStack>
@@ -425,7 +429,7 @@ export default function ProfessionalHomeScreen() {
 
         <AppCard flex={1} minW={280} p="$5">
           <XStack items="flex-start" justify="space-between" gap="$3" flexWrap="wrap">
-            <YStack gap="$2" flex={1} minW={220}>
+            <YStack gap="$2" flex={1} minW={0}>
               <XStack items="center" gap="$2">
                 <Ionicons name="person-add-outline" size={22} color={theme.brand.val} accessible={false} />
                 <SizableText color="$color" fontFamily="$heading" size="$5">Convidar paciente</SizableText>

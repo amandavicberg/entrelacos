@@ -1,4 +1,5 @@
-import { Button, Paragraph, XStack, YStack } from 'tamagui';
+import { Paragraph, XStack, YStack } from 'tamagui';
+import { AppButton as Button } from '@/components/app-button';
 
 type Props = { busy: boolean; onKeep: () => void; onConfirm: () => void };
 

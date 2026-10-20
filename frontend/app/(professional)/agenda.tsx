@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
-import { Button, Paragraph, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { Paragraph, SizableText, useTheme, XStack, YStack } from 'tamagui';
+import { AppButton as Button } from '@/components/app-button';
 
 import { AppCard } from '@/components/app-card';
 import { AppInput } from '@/components/app-input';
@@ -174,7 +175,7 @@ export default function AgendaScreen() {
     {section === 'consultations' ? <XStack flexDirection={wide ? 'row' : 'column'} gap="$4" items="stretch">
       <AppCard flex={wide ? 1 : undefined} minW={0} p="$5">
         <XStack items="center" justify="space-between" gap="$3" flexWrap="wrap">
-          <YStack gap="$1">
+          <YStack gap="$1" maxW="100%" shrink={1}>
             <SizableText color="$color" fontWeight="700" fontSize={18}>Calendário</SizableText>
             <Paragraph color="$muted" size="$2">{wide ? 'Selecione um dia para ver os atendimentos.' : 'Toque em um dia; as consultas aparecem abaixo.'}</Paragraph>
           </YStack>

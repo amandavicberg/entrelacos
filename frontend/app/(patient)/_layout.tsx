@@ -1,8 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, Stack, Tabs, type RelativePathString } from 'expo-router';
-import { useWindowDimensions } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Theme, useTheme } from 'tamagui';
+import { Theme } from 'tamagui';
+import { useAppTabOptions } from '@/components/app-tab-options';
 
 import { FeedbackState } from '@/components/feedback-state';
 import { useAuth } from '@/contexts/auth-context';
@@ -15,23 +14,9 @@ const tabs = [
 ] as const;
 
 function PatientTabs() {
-  const theme = useTheme();
-  const insets = useSafeAreaInsets();
-  const { fontScale } = useWindowDimensions();
+  const screenOptions = useAppTabOptions();
   return (
-    <Tabs initialRouteName="index" backBehavior="initialRoute" screenOptions={{
-      headerShown: false,
-      sceneStyle: { backgroundColor: theme.background.val },
-      tabBarActiveTintColor: theme.brand.val,
-      tabBarInactiveTintColor: theme.muted.val,
-      tabBarActiveBackgroundColor: theme.soft.val,
-      tabBarLabelPosition: 'below-icon',
-      tabBarLabelStyle: { fontFamily: 'Poppins_600SemiBold', fontSize: 11, lineHeight: 18 },
-      tabBarItemStyle: { borderRadius: 16, marginHorizontal: 2, paddingVertical: 4 },
-      tabBarStyle: { backgroundColor: theme.surface.val, borderTopColor: theme.borderColor.val,
-        height: 80 + Math.max(0, fontScale - 1) * 28 + Math.max(insets.bottom, 8),
-        paddingTop: 8, paddingBottom: Math.max(insets.bottom, 8), paddingHorizontal: 8 },
-    }}>
+    <Tabs initialRouteName="index" backBehavior="initialRoute" screenOptions={screenOptions}>
       {tabs.map(({ name, title, icon, selected }) => (
         <Tabs.Screen key={name} name={name} options={{ title, tabBarAccessibilityLabel: title,
           tabBarIcon: ({ focused, color }) => <Ionicons name={focused ? selected : icon} color={color} size={22} accessible={false} />,
