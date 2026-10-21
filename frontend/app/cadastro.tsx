@@ -205,9 +205,10 @@ export default function RegistrationScreen() {
                   role="radio"
                   aria-checked={selected}
                   aria-disabled={isSubmitting}
-                  bg={selected ? '$brand' : 'transparent'}
-                  color={selected ? '$brandContrast' : '$muted'}
-                  borderWidth={0}
+                  bg={selected ? '$brand' : '$surface'}
+                  color={selected ? '$brandContrast' : '$brand'}
+                  borderWidth={2}
+                  borderColor={selected ? '$brand' : '$inputBorder'}
                   style={{ borderRadius: tokens.radius.$4.val }}
                   fontWeight={selected ? '800' : '600'}
                   hoverStyle={{ bg: selected ? '$brandHover' : '$backgroundPress' }}

@@ -163,10 +163,10 @@ function LoginContent() {
                   role="radio"
                   aria-checked={selected}
                   aria-disabled={submitting}
-                  bg={selected ? '$brand' : 'transparent'}
-                  color={selected ? '$brandContrast' : '$muted'}
+                  bg={selected ? '$brand' : '$surface'}
+                  color={selected ? '$brandContrast' : '$brand'}
                   borderWidth={2}
-                  borderColor={selected ? '$brand' : 'transparent'}
+                  borderColor={selected ? '$brand' : '$inputBorder'}
                   style={{ borderRadius: tokens.radius.$4.val }}
                   fontWeight={selected ? '800' : '600'}
                   hoverStyle={{ bg: selected ? '$brandHover' : '$backgroundPress' }}
@@ -247,7 +247,7 @@ function LoginContent() {
           </YStack>
 
           {role === 'patient' ? (
-            <YStack gap="$2" p="$3" bg="$backgroundHover" borderWidth={1} borderColor="$borderColor" style={{ borderRadius: tokens.radius.control.val }}>
+            <YStack gap="$2" p="$3" bg="$accentSoft" borderWidth={1} borderColor="$accentText" style={{ borderRadius: tokens.radius.control.val }}>
               <Button
                 chromeless
                 justify="space-between"
@@ -262,10 +262,10 @@ function LoginContent() {
                 onPress={() => setIsInviteExpanded((value) => !value)}
               >
                 <YStack flex={1} minW={0} gap="$1">
-                  <SizableText color="$color" fontWeight="700">Recebeu um convite?</SizableText>
-                  <Paragraph color="$muted" size="$2">Informe o código para solicitar seu vínculo.</Paragraph>
+                  <SizableText color="$brand" fontWeight="700">Recebeu um convite?</SizableText>
+                  <Paragraph color="$color" size="$2">Informe o código para solicitar seu vínculo.</Paragraph>
                 </YStack>
-                <Ionicons name={isInviteExpanded ? 'chevron-up-outline' : 'chevron-down-outline'} size={20} color={theme.muted.val} />
+                <Ionicons name={isInviteExpanded ? 'chevron-up-outline' : 'chevron-down-outline'} size={20} color={theme.brand.val} />
               </Button>
               {isInviteExpanded ? (
                 <YStack gap="$2" pt="$1">
@@ -283,7 +283,7 @@ function LoginContent() {
                     aria-label="Tenho um código de convite. Use somente se você recebeu um convite de um profissional."
                     startAdornment={<Ionicons name="key-outline" size={19} color={theme.muted.val} />}
                   />
-                  <Paragraph color="$muted" size="$2">Use este código somente se você recebeu um convite.</Paragraph>
+                  <Paragraph color="$color" size="$2">Use este código somente se você recebeu um convite.</Paragraph>
                 </YStack>
               ) : null}
             </YStack>
