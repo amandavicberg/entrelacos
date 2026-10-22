@@ -3,6 +3,7 @@ import { createServer } from 'node:http';
 
 import { HttpError } from './auth.js';
 import {
+  endProfessionalRelationship,
   cancelAppointment,
   confirmMaterialUpload,
   correctObservation,
@@ -38,6 +39,7 @@ const server = createServer(async (request, response) => {
   if (request.method === 'OPTIONS') return sendJson(response, 204, {});
   const pathname = new URL(request.url ?? '/', 'http://localhost').pathname;
   try {
+    if (request.method === 'GET' && pathname === '/health') return sendJson(response, 200, { status: 'ok', revision: process.env.RENDER_GIT_COMMIT ?? null });
     if (request.method === 'POST' && pathname === '/v1/patient/invitations/consume') return await consumeInvite(request, response);
     if (request.method === 'POST' && pathname === '/v1/professional/invitations') return await generateInvite(request, response);
     if (request.method === 'PATCH' && pathname === '/v1/professional/profile') return await updateProfessionalProfile(request, response);
@@ -51,6 +53,9 @@ const server = createServer(async (request, response) => {
 
     let match = new RegExp(`^/v1/professional/relationships/${id}/(approve|reject)$`, 'i').exec(pathname);
     if (request.method === 'POST' && match) return await decideRelationship(request, response, match[1], match[2] === 'approve' ? 'active' : 'rejected');
+
+    match = new RegExp(`^/v1/professional/patients/${id}/end$`, 'i').exec(pathname);
+    if (request.method === 'POST' && match) return await endProfessionalRelationship(request, response, match[1]);
 
     if (request.method === 'GET' && pathname === '/v1/professional/patients') return await listProfessionalPatients(request, response);
     if (request.method === 'GET' && pathname === '/v1/professional/activity') return await listProfessionalActivity(request, response);

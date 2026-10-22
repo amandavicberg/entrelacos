@@ -1,8 +1,8 @@
 # Constitution do EntreLaços
 
-**Versão:** 1.4.0
+**Versão:** 1.5.0
 **Status:** documento normativo do projeto  
-**Última atualização:** 2026-09-08
+**Última atualização:** 2026-10-22
 
 Este documento é a fonte de verdade para decisões técnicas e de produto do EntreLaços. Toda nova tarefa deve começar pela leitura deste arquivo. Decisões que alterem arquitetura, domínio ou segurança devem atualizar o documento junto com a implementação.
 
@@ -53,6 +53,14 @@ somente um vínculo aberto por vez: uma associação `pending` ou `active` com u
 permanecem como histórico e não impedem um novo convite. A regra deve ser
 garantida pelo banco e pelo fluxo de consumo do convite, não apenas pela
 interface.
+
+O profissional pode encerrar seu próprio vínculo ativo, registrando `ended_at` e
+mantendo os registros e `status = 0`. Vínculos encerrados ficam fora da lista de
+ativos e disponíveis ao profissional original para consulta histórica, sem
+novas escritas. O paciente sem outro vínculo ativo volta à jornada de associação.
+O retorno exige novo convite e aprovação; o histórico anterior não é transferido
+a outro profissional nem apagado. Consultas futuras devem ser canceladas antes
+do encerramento para não bloquear a agenda.
 
 Autenticação não equivale a autorização. Toda leitura e escrita deve respeitar papel, associação paciente-profissional e políticas do banco.
 

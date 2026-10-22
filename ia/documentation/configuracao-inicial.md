@@ -43,6 +43,16 @@ contraste do seletor profissional. A confirmação de e-mail, o ingresso por
 convite e os fluxos com contas vinculadas exigem o reteste de
 `roteiro-reteste-paciente-aline.md`.
 
+## Carregamento e histórico de vínculos (2026-10-22)
+
+A raiz inicia uma chamada pública a `/health` para antecipar a conexão com a API.
+A ficha profissional carrega apenas os recursos da seção visível e mantém
+pacientes encerrados em uma lista própria, com histórico somente para consulta.
+As validações simultâneas de autenticação no backend compartilham a consulta em
+andamento, sem cache persistente de permissões. Consulte
+[pacientes encerrados e desempenho](features/pacientes-encerrados-desempenho.md)
+para detalhes, autorização, migration aplicada e limites de validação.
+
 ## Estrutura atual
 
 - [`frontend/`](../../frontend/): aplicativo React Native com Expo SDK 57,

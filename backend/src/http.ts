@@ -9,6 +9,7 @@ export function sendJson(response: ServerResponse, status: number, body: object)
     'Access-Control-Allow-Origin': corsOrigin,
     'Content-Type': 'application/json; charset=utf-8',
     'X-Content-Type-Options': 'nosniff',
+    'Cache-Control': 'no-store',
   });
   response.end(status === 204 ? undefined : JSON.stringify(body));
 }

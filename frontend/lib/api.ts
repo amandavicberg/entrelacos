@@ -10,6 +10,13 @@ function getApiUrl(): string {
 // mas longa o bastante para que o conteúdo não pareça desaparecer após um cold start.
 const apiTimeoutMs = 60_000;
 
+let warmup: Promise<void> | undefined;
+export function warmApi(): Promise<void> {
+  // Start waking the host while the public screen/fonts/login are loading.
+  warmup ??= fetchApi(`${getApiUrl()}/health`, {}).then(() => {}).catch(() => {});
+  return warmup;
+}
+
 export class ApiRequestError extends Error {
   constructor(message: string, readonly status: number) { super(message); this.name = 'ApiRequestError'; }
 }
@@ -141,7 +148,7 @@ export async function consumePatientInvite(code: string, accessToken: string): P
   }
 }
 
-export type FollowUpPatient = { relationshipId: string; patientName: string; approvedAt: string | null };
+export type FollowUpPatient = { relationshipId: string; patientName: string; approvedAt: string | null; relationshipStatus: 'active' | 'ended'; endedAt: string | null };
 export type FollowUpObservation = { id: string; content: string; visibility: 'professional' | 'patient'; occurredAt: string; version: number; createdAt: string };
 export type FollowUpAppointment = { id: string; relationshipId: string; startsAt: string; endsAt: string; state: 'scheduled' | 'cancelled'; patientResponse: 'pending' | 'confirmed' | 'cancelled'; cancelledAt: string | null; cancellationReason: string | null };
 export type ProfessionalActivity = {
@@ -160,12 +167,12 @@ export type PatientMessage = { id: string; relationshipId: string; content: stri
 export type PatientCheckIn = { id: string; relationshipId: string; feeling: 'calm' | 'happy' | 'tired' | 'anxious' | 'sad' | 'other'; note: string | null; createdAt: string };
 export type PatientDocumentUpload = { documentId: string; storagePath: string; signedUrl: string; token: string; mimeType: string; sizeBytes: number };
 
-export async function listProfessionalPatients(accessToken: string): Promise<FollowUpPatient[]> {
+export async function listProfessionalPatients(accessToken: string, state: 'active' | 'ended' = 'active'): Promise<FollowUpPatient[]> {
   const patients: FollowUpPatient[] = [];
   const pageSize = 100;
   for (let offset = 0; ; offset += pageSize) {
     const page = await requestJson<{ patients: FollowUpPatient[]; hasMore?: boolean }>(
-      '/v1/professional/patients?limit=' + pageSize + '&offset=' + offset, accessToken,
+      '/v1/professional/patients?limit=' + pageSize + '&offset=' + offset + '&state=' + state, accessToken,
     );
     patients.push(...page.patients);
     if (!(page.hasMore ?? page.patients.length === pageSize)) return patients;
@@ -176,12 +183,16 @@ export async function listProfessionalActivity(accessToken: string): Promise<Pro
   return requestJson<ProfessionalActivity>('/v1/professional/activity', accessToken);
 }
 
+export async function endProfessionalRelationship(accessToken: string, relationshipId: string): Promise<void> {
+  await requestJson(`/v1/professional/patients/${relationshipId}/end`, accessToken, { method: 'POST' });
+}
+
 export async function getProfessionalPatient(accessToken: string, relationshipId: string): Promise<FollowUpPatient> {
   return (await requestJson<{ patient: FollowUpPatient }>(`/v1/professional/patients/${relationshipId}`, accessToken)).patient;
 }
 
 export async function listProfessionalObservations(accessToken: string, relationshipId: string): Promise<FollowUpObservation[]> {
-  return (await requestJson<{ observations: FollowUpObservation[] }>(`/v1/professional/patients/${relationshipId}/observations`, accessToken)).observations;
+  return listAllPatientPages<FollowUpObservation>(`/v1/professional/patients/${relationshipId}/observations`, accessToken, 'observations');
 }
 
 export async function createProfessionalObservation(accessToken: string, relationshipId: string, input: { content: string; visibility: FollowUpObservation['visibility']; occurredAt: string }): Promise<void> {

@@ -7,6 +7,8 @@ import {
   useFonts,
 } from '@expo-google-fonts/poppins';
 import { Redirect, Stack, usePathname, type RelativePathString } from 'expo-router';
+import { useEffect } from 'react';
+import { warmApi } from '@/lib/api';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -41,6 +43,7 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
+  useEffect(() => { void warmApi(); }, []);
   const [fontsLoaded, fontError] = useFonts({
     Poppins_400Regular,
     Poppins_500Medium,

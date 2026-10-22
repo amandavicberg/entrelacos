@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import { activeRelationship, authenticate, HttpError, type Actor } from './auth.js';
+import { activeRelationship, readableRelationship, requireActivePatient, authenticate, HttpError, type Actor } from './auth.js';
 import { isBirthdayInBrazil } from './birthday.js';
 import { supabase } from './config/supabase.js';
 import { logDatabaseError, sendJson } from './http.js';
@@ -73,10 +73,11 @@ export async function confirmPatientDocumentUpload(request: IncomingMessage, res
 
 export async function listPatientDocuments(request: IncomingMessage, response: ServerResponse, relationshipId?: string): Promise<void> {
   const actor = await authenticate(request);
+  await requireActivePatient(actor);
   const { limit, offset } = pagination(request.url);
   let query = supabase.from('patient_documents').select('id, relationship_id, title, document_kind, mime_type, size_bytes, created_at').eq('status', 0).order('created_at', { ascending: false }).range(offset, offset + limit - 1);
   if (relationshipId) {
-    await activeRelationship(actor, relationshipId);
+    await readableRelationship(actor, relationshipId);
     query = query.eq('relationship_id', relationshipId);
   } else if (actor.role === 'patient') {
     query = query.eq('patient_id', actor.id);
@@ -88,9 +89,10 @@ export async function listPatientDocuments(request: IncomingMessage, response: S
 
 export async function getPatientDocumentUrl(request: IncomingMessage, response: ServerResponse, documentId: string): Promise<void> {
   const actor = await authenticate(request);
+  await requireActivePatient(actor);
   const { data: document, error } = await supabase.from('patient_documents').select('relationship_id, patient_id, storage_path').eq('id', documentId).eq('status', 0).maybeSingle();
   if (error || !document) throw new HttpError(404, 'Documento não encontrado.');
-  await activeRelationship(actor, document.relationship_id);
+  await readableRelationship(actor, document.relationship_id);
   if (actor.role === 'patient' && document.patient_id !== actor.id) throw new HttpError(404, 'Documento não encontrado.');
   const { data, error: signedError } = await supabase.storage.from('patient-documents').createSignedUrl(document.storage_path, 60);
   if (signedError || !data) failure('Falha ao assinar leitura de documento do paciente', 'Não foi possível abrir o documento.', signedError);
@@ -99,8 +101,9 @@ export async function getPatientDocumentUrl(request: IncomingMessage, response: 
 
 export async function listPatientMessages(request: IncomingMessage, response: ServerResponse, relationshipId?: string): Promise<void> {
   const actor = await authenticate(request);
+  await requireActivePatient(actor);
   const { limit, offset } = pagination(request.url);
-  if (relationshipId) await activeRelationship(actor, relationshipId);
+  if (relationshipId) await readableRelationship(actor, relationshipId);
   let query = supabase.from('patient_messages').select('id, relationship_id, content, created_at').eq('status', 0).order('created_at', { ascending: false }).range(offset, offset + limit - 1);
   query = relationshipId ? query.eq('relationship_id', relationshipId) : query.eq('author_id', actor.id);
   const { data, error } = await query;
@@ -117,8 +120,10 @@ export async function createPatientMessage(request: IncomingMessage, response: S
 }
 
 export async function listPatientCheckIns(request: IncomingMessage, response: ServerResponse, relationshipId?: string): Promise<void> {
-  const actor = await authenticate(request); const { limit, offset } = pagination(request.url);
-  if (relationshipId) await activeRelationship(actor, relationshipId);
+  const actor = await authenticate(request);
+  await requireActivePatient(actor);
+  const { limit, offset } = pagination(request.url);
+  if (relationshipId) await readableRelationship(actor, relationshipId);
   let query = supabase.from('patient_check_ins').select('id, relationship_id, feeling, note, created_at').eq('status', 0).order('created_at', { ascending: false }).range(offset, offset + limit - 1);
   query = relationshipId ? query.eq('relationship_id', relationshipId) : query.eq('author_id', actor.id);
   const { data, error } = await query;

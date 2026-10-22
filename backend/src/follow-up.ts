@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import { activeRelationship, authenticate, HttpError, type Actor } from './auth.js';
+import { activeRelationship, readableRelationship, authenticate, HttpError, type Actor } from './auth.js';
 import { supabase } from './config/supabase.js';
 import { logDatabaseError, sendJson } from './http.js';
 import { isoDate, jsonBody, pagination, text, uuid } from './validation.js';
@@ -77,10 +77,12 @@ function materialOutput(item: Record<string, any>) {
 export async function listProfessionalPatients(request: IncomingMessage, response: ServerResponse): Promise<void> {
   const actor = await authenticate(request, 'professional');
   const { limit, offset } = pagination(request.url);
+  const state = new URL(request.url ?? '/', 'http://localhost').searchParams.get('state') ?? 'active';
+  if (state !== 'active' && state !== 'ended') throw new HttpError(400, 'Estado de acompanhamento inválido.');
   const { data: relationships, error } = await supabase.from('patient_professional_relationships')
-    .select('id, patient_id, approved_at')
+    .select('id, patient_id, approved_at, ended_at, relationship_status')
     .eq('professional_id', actor.id)
-    .eq('relationship_status', 'active')
+    .eq('relationship_status', state)
     .eq('status', 0)
     .order('approved_at', { ascending: false })
     .range(offset, offset + limit - 1);
@@ -95,7 +97,7 @@ export async function listProfessionalPatients(request: IncomingMessage, respons
   sendJson(response, 200, {
     patients: (relationships ?? []).flatMap((item) => {
       const patientName = byId.get(item.patient_id);
-      return patientName ? [{ relationshipId: item.id, patientName, approvedAt: item.approved_at }] : [];
+      return patientName ? [{ relationshipId: item.id, patientName, approvedAt: item.approved_at, endedAt: item.ended_at, relationshipStatus: item.relationship_status }] : [];
     }),
     limit,
     offset,
@@ -127,11 +129,11 @@ export async function getProfessionalPatient(
   relationshipId: string,
 ): Promise<void> {
   const actor = await authenticate(request, 'professional');
-  const relationship = await activeRelationship(actor, relationshipId);
+  const relationship = await readableRelationship(actor, relationshipId);
   const { data, error } = await supabase.from('profiles').select('full_name')
     .eq('id', relationship.patient_id).eq('role', 'patient').eq('status', 0).maybeSingle();
   if (error || !data) throw new HttpError(404, 'Paciente não encontrado.');
-  sendJson(response, 200, { patient: { relationshipId, patientName: data.full_name } });
+  sendJson(response, 200, { patient: { relationshipId, patientName: data.full_name, approvedAt: relationship.approved_at, endedAt: relationship.ended_at, relationshipStatus: relationship.relationship_status } });
 }
 
 export async function listObservations(
@@ -141,7 +143,7 @@ export async function listObservations(
 ): Promise<void> {
   const actor = await authenticate(request);
   const ids = relationshipId ? [relationshipId] : await activeRelationshipIds(actor);
-  if (relationshipId) await activeRelationship(actor, relationshipId);
+  if (relationshipId) await readableRelationship(actor, relationshipId);
   if (!ids.length) return sendJson(response, 200, { observations: [] });
   const { limit, offset } = pagination(request.url);
   let query = supabase.from('professional_observations')
@@ -221,7 +223,7 @@ export async function listAppointments(
 ): Promise<void> {
   const actor = await authenticate(request);
   const ids = relationshipId ? [relationshipId] : await activeRelationshipIds(actor);
-  if (relationshipId) await activeRelationship(actor, relationshipId);
+  if (relationshipId) await readableRelationship(actor, relationshipId);
   if (!ids.length) return sendJson(response, 200, { appointments: [] });
   const { data, error } = await supabase.from('appointments')
     .select('id, relationship_id, starts_at, ends_at, appointment_state, patient_response, cancelled_at, cancellation_reason')
@@ -347,7 +349,7 @@ export async function listTimeline(
   relationshipId: string,
 ): Promise<void> {
   const actor = await authenticate(request);
-  await activeRelationship(actor, relationshipId);
+  await readableRelationship(actor, relationshipId);
   let observationsQuery = supabase.from('professional_observations')
     .select('id, content, occurred_at').eq('relationship_id', relationshipId).eq('status', 0);
   if (actor.role === 'patient') observationsQuery = observationsQuery.eq('visibility', 'patient');
@@ -430,7 +432,7 @@ export async function listProfessionalPatientMaterials(
   relationshipId: string,
 ): Promise<void> {
   const actor = await authenticate(request, 'professional');
-  await activeRelationship(actor, relationshipId);
+  await readableRelationship(actor, relationshipId);
   const { data: shares, error } = await supabase.from('patient_material_shares')
     .select('id, material_id, shared_at').eq('relationship_id', relationshipId)
     .eq('status', 0).order('shared_at', { ascending: false });
@@ -567,4 +569,23 @@ export async function getMaterialUrl(
   const { data, error: signedError } = await supabase.storage.from('professional-materials').createSignedUrl(material.storage_path, 60);
   if (signedError || !data) databaseFailure('Falha ao assinar download', 'Não foi possível abrir o material.', signedError);
   sendJson(response, 200, { url: data.signedUrl, expiresIn: 60 });
+}
+
+export async function endProfessionalRelationship(request: IncomingMessage, response: ServerResponse, relationshipId: string): Promise<void> {
+  const actor = await authenticate(request, 'professional');
+  const relationship = await readableRelationship(actor, relationshipId);
+  if (relationship.relationship_status === 'ended') return sendJson(response, 200, { ended: true });
+  const { data: upcoming, error: appointmentError } = await supabase.from('appointments').select('id')
+    .eq('relationship_id', relationshipId).eq('status', 0).eq('appointment_state', 'scheduled')
+    .gte('ends_at', new Date().toISOString()).limit(1).maybeSingle();
+  if (appointmentError) databaseFailure('Falha ao validar agenda', 'Não foi possível verificar a agenda.', appointmentError);
+  if (upcoming) throw new HttpError(409, 'Cancele as consultas futuras ou em andamento deste paciente antes de encerrar o acompanhamento.');
+  const { data, error } = await supabase.from('patient_professional_relationships')
+    .update({ relationship_status: 'ended', ended_at: new Date().toISOString() })
+    .eq('id', relationshipId).eq('professional_id', actor.id).eq('relationship_status', 'active').eq('status', 0)
+    .select('id').maybeSingle();
+  if (error?.code === '23514') throw new HttpError(409, 'A agenda ou o vínculo mudou. Atualize a ficha e cancele consultas futuras antes de encerrar.');
+  if (error) databaseFailure('Falha ao encerrar vínculo', 'Não foi possível encerrar o acompanhamento.', error);
+  if (!data) throw new HttpError(409, 'O vínculo foi alterado. Atualize a ficha e tente novamente.');
+  sendJson(response, 200, { ended: true });
 }
