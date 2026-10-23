@@ -1,6 +1,6 @@
 # Pacientes encerrados e desempenho
 
-Atualizado em 2026-10-22. Implementado e validado localmente; publicação em andamento.
+Atualizado em 2026-10-23. Implementado, validado e publicado.
 
 ## Funcionamento
 
@@ -86,3 +86,17 @@ lock no banco. O trigger de consultas revalida o vínculo depois de adquirir ess
 lock. Não apresentar o teste com fixtures como teste
 integrado de concorrência do PostgreSQL. Reteste com contas de homologação e em
 Android/iOS está na checklist humana do plano.
+
+## Publicação verificada
+
+Commit de aplicação `16a08c1`, enviado à main. Em 2026-10-23, o endpoint público
+`https://entrelacos-api-yzcw.onrender.com/health` confirmou status ok e a revisão
+completa do commit. Frontend checks e Backend checks passaram no GitHub.
+A Vercel confirmou a conclusão do deployment
+`https://vercel.com/entrelacos2/entrelacos-frontend/faXSm43rGXuDU19Zpw44sgrVfzpQ`.
+O site público é `https://entrelacos-frontend.vercel.app/`.
+
+A tentativa inicial de consultar o status do deploy foi interrompida por limite
+de uso na revisão automática de aprovação; retomada em 2026-10-23, sem refazer
+migrations ou encerrar registros reais. O status de publicação acima foi
+confirmado pelas respostas dos serviços, não apenas pelo push ao GitHub.

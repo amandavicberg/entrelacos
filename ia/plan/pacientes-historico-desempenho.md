@@ -32,7 +32,7 @@ Publicação solicitada inclui aplicar essa proteção após dry-run do CLI.
 - [x] Validar testes de autorização, TypeScript, lint e build.
 - [x] Validar/aplicar migration de proteção da agenda.
 - [x] Documentar funcionamento real e limites.
-- [ ] Publicar e verificar deployments.
+- [x] Publicar e verificar deployments.
 
 ## Validação e riscos
 
@@ -49,3 +49,12 @@ Primeira conexão da hospedagem pode continuar sujeita a cold start.
 - [ ] Confirmar bloqueio do paciente sem vínculo e isolamento entre profissionais.
 - [ ] Testar erro de rede, lista vazia, busca, teclado, fonte ampliada e celular.
 - [ ] Comparar abertura e troca das seções com a versão anterior.
+
+## Publicação confirmada
+
+Em 2026-10-23, o commit `16a08c1` foi confirmado na produção: `/health`
+retornou `status: ok` e revisão `16a08c1e5feaaa36883ac22c7f03e85169b07d1f`.
+A Vercel registrou deployment concluído; Frontend checks e Backend checks
+terminaram com sucesso no GitHub. Site: https://entrelacos-frontend.vercel.app/.
+A migration já havia sido aplicada e validada por db lint sem erros.
+Testes humanos permanecem pendentes; a conferência do agente usou dados fictícios.
